@@ -116,7 +116,7 @@ describe('BudgetPage', () => {
   it('shows the header math and updates unallocated after editing an allocation', async () => {
     setupFetch({
       detail: periodDetail(),
-      nextDetail: (categoryId, amount) =>
+      nextDetail: (_categoryId, amount) =>
         periodDetail({
           unallocated: 40000,
           categories: [

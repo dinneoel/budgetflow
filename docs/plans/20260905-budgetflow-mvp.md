@@ -208,13 +208,13 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 18: Frontend — transactions list and editor
 **Files:**
   - Create: `frontend/src/features/transactions/`
-  - [ ] transaction list with pagination, filters (date, account, category, payee, amount, status, type, tags), and search
-  - [ ] add/edit modal optimized for speed: date (defaults today), amount, account, payee, category; keyboard-first flow; expense/income/transfer/refund type switch
-  - [ ] split editor with running remainder; transfer form with from/to accounts
-  - [ ] bulk selection toolbar: categorize, tag, delete, mark reviewed; duplicate warnings surfaced on entry
-  - [ ] soft-deleted view with restore
-  - [ ] write tests: quick-add happy path, split sum validation, filter application, bulk categorize, restore
-  - [ ] run project test suite - must pass before task 19
+  - [x] transaction list with pagination, filters (date, account, category, payee, amount, status, type, tags), and search
+  - [x] add/edit modal optimized for speed: date (defaults today), amount, account, payee, category; keyboard-first flow; expense/income/transfer/refund type switch
+  - [x] split editor with running remainder; transfer form with from/to accounts
+  - [x] bulk selection toolbar: categorize, tag, delete, mark reviewed; duplicate warnings surfaced on entry
+  - [x] soft-deleted view with restore
+  - [x] write tests: quick-add happy path, split sum validation, filter application, bulk categorize, restore
+  - [x] run project test suite - must pass before task 19
 
 ### Task 19: Frontend — recurring bills, goals, and notifications
 **Files:**
