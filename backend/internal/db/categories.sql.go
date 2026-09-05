@@ -12,6 +12,65 @@ import (
 	"github.com/google/uuid"
 )
 
+const countCategoriesInGroup = `-- name: CountCategoriesInGroup :one
+SELECT count(*) FROM categories WHERE group_id = $1 AND user_id = $2
+`
+
+type CountCategoriesInGroupParams struct {
+	GroupID uuid.UUID
+	UserID  uuid.UUID
+}
+
+func (q *Queries) CountCategoriesInGroup(ctx context.Context, arg CountCategoriesInGroupParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCategoriesInGroup, arg.GroupID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countCategoryGroupsByUser = `-- name: CountCategoryGroupsByUser :one
+SELECT count(*) FROM category_groups WHERE user_id = $1
+`
+
+func (q *Queries) CountCategoryGroupsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countCategoryGroupsByUser, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countCategorySplits = `-- name: CountCategorySplits :one
+SELECT count(*) FROM transaction_splits WHERE category_id = $1 AND user_id = $2
+`
+
+type CountCategorySplitsParams struct {
+	CategoryID uuid.UUID
+	UserID     uuid.UUID
+}
+
+func (q *Queries) CountCategorySplits(ctx context.Context, arg CountCategorySplitsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCategorySplits, arg.CategoryID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countCategoryTransactions = `-- name: CountCategoryTransactions :one
+SELECT count(*) FROM transactions WHERE category_id = $1 AND user_id = $2
+`
+
+type CountCategoryTransactionsParams struct {
+	CategoryID *uuid.UUID
+	UserID     uuid.UUID
+}
+
+func (q *Queries) CountCategoryTransactions(ctx context.Context, arg CountCategoryTransactionsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCategoryTransactions, arg.CategoryID, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO categories (user_id, group_id, name, icon, color, budget_type, rollover_rule, sort_order)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -142,6 +201,30 @@ func (q *Queries) GetCategory(ctx context.Context, arg GetCategoryParams) (Categ
 	return i, err
 }
 
+const getCategoryGroup = `-- name: GetCategoryGroup :one
+SELECT id, user_id, name, sort_order, archived_at, created_at, updated_at FROM category_groups WHERE id = $1 AND user_id = $2
+`
+
+type GetCategoryGroupParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetCategoryGroup(ctx context.Context, arg GetCategoryGroupParams) (CategoryGroup, error) {
+	row := q.db.QueryRow(ctx, getCategoryGroup, arg.ID, arg.UserID)
+	var i CategoryGroup
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.SortOrder,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listCategoriesByUser = `-- name: ListCategoriesByUser :many
 SELECT id, user_id, group_id, name, icon, color, budget_type, rollover_rule, sort_order, archived_at, created_at, updated_at FROM categories WHERE user_id = $1 ORDER BY sort_order, created_at
 `
@@ -211,8 +294,203 @@ func (q *Queries) ListCategoryGroupsByUser(ctx context.Context, userID uuid.UUID
 	return items, nil
 }
 
-const setCategoryArchived = `-- name: SetCategoryArchived :exec
-UPDATE categories SET archived_at = $3, updated_at = now() WHERE id = $1 AND user_id = $2
+const mergeCombineAllocations = `-- name: MergeCombineAllocations :execrows
+UPDATE budget_allocations AS t
+SET amount = t.amount + s.amount, rollover = t.rollover + s.rollover, updated_at = now()
+FROM budget_allocations AS s
+WHERE t.user_id = $1 AND s.user_id = $1
+  AND s.category_id = $2 AND t.category_id = $3
+  AND t.period_id = s.period_id
+`
+
+type MergeCombineAllocationsParams struct {
+	UserID   uuid.UUID
+	SourceID uuid.UUID
+	TargetID uuid.UUID
+}
+
+// Fold source allocations into existing target allocations for periods where
+// both categories are funded, so (period_id, category_id) stays unique.
+func (q *Queries) MergeCombineAllocations(ctx context.Context, arg MergeCombineAllocationsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeCombineAllocations, arg.UserID, arg.SourceID, arg.TargetID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeDeleteCombinedAllocations = `-- name: MergeDeleteCombinedAllocations :execrows
+DELETE FROM budget_allocations AS s
+WHERE s.category_id = $1 AND s.user_id = $2
+  AND EXISTS (
+    SELECT 1 FROM budget_allocations AS t
+    WHERE t.period_id = s.period_id AND t.category_id = $3 AND t.user_id = $2
+  )
+`
+
+type MergeDeleteCombinedAllocationsParams struct {
+	SourceID uuid.UUID
+	UserID   uuid.UUID
+	TargetID uuid.UUID
+}
+
+func (q *Queries) MergeDeleteCombinedAllocations(ctx context.Context, arg MergeDeleteCombinedAllocationsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeDeleteCombinedAllocations, arg.SourceID, arg.UserID, arg.TargetID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeReassignAllocationHistory = `-- name: MergeReassignAllocationHistory :execrows
+UPDATE allocation_history SET category_id = $1
+WHERE category_id = $2 AND user_id = $3
+`
+
+type MergeReassignAllocationHistoryParams struct {
+	TargetID *uuid.UUID
+	SourceID *uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) MergeReassignAllocationHistory(ctx context.Context, arg MergeReassignAllocationHistoryParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeReassignAllocationHistory, arg.TargetID, arg.SourceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeReassignAllocations = `-- name: MergeReassignAllocations :execrows
+UPDATE budget_allocations SET category_id = $1, updated_at = now()
+WHERE category_id = $2 AND user_id = $3
+`
+
+type MergeReassignAllocationsParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) MergeReassignAllocations(ctx context.Context, arg MergeReassignAllocationsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeReassignAllocations, arg.TargetID, arg.SourceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeReassignGoals = `-- name: MergeReassignGoals :execrows
+UPDATE goals SET category_id = $1, updated_at = now()
+WHERE category_id = $2 AND user_id = $3
+`
+
+type MergeReassignGoalsParams struct {
+	TargetID *uuid.UUID
+	SourceID *uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) MergeReassignGoals(ctx context.Context, arg MergeReassignGoalsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeReassignGoals, arg.TargetID, arg.SourceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeReassignRecurringRules = `-- name: MergeReassignRecurringRules :execrows
+UPDATE recurring_rules SET category_id = $1, updated_at = now()
+WHERE category_id = $2 AND user_id = $3
+`
+
+type MergeReassignRecurringRulesParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) MergeReassignRecurringRules(ctx context.Context, arg MergeReassignRecurringRulesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeReassignRecurringRules, arg.TargetID, arg.SourceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeReassignSplits = `-- name: MergeReassignSplits :execrows
+UPDATE transaction_splits SET category_id = $1, updated_at = now()
+WHERE category_id = $2 AND user_id = $3
+`
+
+type MergeReassignSplitsParams struct {
+	TargetID uuid.UUID
+	SourceID uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) MergeReassignSplits(ctx context.Context, arg MergeReassignSplitsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeReassignSplits, arg.TargetID, arg.SourceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const mergeReassignTransactions = `-- name: MergeReassignTransactions :execrows
+
+UPDATE transactions SET category_id = $1, updated_at = now()
+WHERE category_id = $2 AND user_id = $3
+`
+
+type MergeReassignTransactionsParams struct {
+	TargetID *uuid.UUID
+	SourceID *uuid.UUID
+	UserID   uuid.UUID
+}
+
+// Merge queries: each reassigns one kind of reference from the source
+// category to the target. The service runs them inside one transaction and
+// deletes the source category afterwards.
+func (q *Queries) MergeReassignTransactions(ctx context.Context, arg MergeReassignTransactionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, mergeReassignTransactions, arg.TargetID, arg.SourceID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const nextCategoryGroupSortOrder = `-- name: NextCategoryGroupSortOrder :one
+SELECT coalesce(max(sort_order) + 1, 0)::int FROM category_groups WHERE user_id = $1
+`
+
+func (q *Queries) NextCategoryGroupSortOrder(ctx context.Context, userID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, nextCategoryGroupSortOrder, userID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const nextCategorySortOrder = `-- name: NextCategorySortOrder :one
+SELECT coalesce(max(sort_order) + 1, 0)::int FROM categories WHERE user_id = $1 AND group_id = $2
+`
+
+type NextCategorySortOrderParams struct {
+	UserID  uuid.UUID
+	GroupID uuid.UUID
+}
+
+func (q *Queries) NextCategorySortOrder(ctx context.Context, arg NextCategorySortOrderParams) (int32, error) {
+	row := q.db.QueryRow(ctx, nextCategorySortOrder, arg.UserID, arg.GroupID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const setCategoryArchived = `-- name: SetCategoryArchived :one
+UPDATE categories SET archived_at = $3, updated_at = now()
+WHERE id = $1 AND user_id = $2
+RETURNING id, user_id, group_id, name, icon, color, budget_type, rollover_rule, sort_order, archived_at, created_at, updated_at
 `
 
 type SetCategoryArchivedParams struct {
@@ -221,13 +499,30 @@ type SetCategoryArchivedParams struct {
 	ArchivedAt *time.Time
 }
 
-func (q *Queries) SetCategoryArchived(ctx context.Context, arg SetCategoryArchivedParams) error {
-	_, err := q.db.Exec(ctx, setCategoryArchived, arg.ID, arg.UserID, arg.ArchivedAt)
-	return err
+func (q *Queries) SetCategoryArchived(ctx context.Context, arg SetCategoryArchivedParams) (Category, error) {
+	row := q.db.QueryRow(ctx, setCategoryArchived, arg.ID, arg.UserID, arg.ArchivedAt)
+	var i Category
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GroupID,
+		&i.Name,
+		&i.Icon,
+		&i.Color,
+		&i.BudgetType,
+		&i.RolloverRule,
+		&i.SortOrder,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-const setCategoryGroupArchived = `-- name: SetCategoryGroupArchived :exec
-UPDATE category_groups SET archived_at = $3, updated_at = now() WHERE id = $1 AND user_id = $2
+const setCategoryGroupArchived = `-- name: SetCategoryGroupArchived :one
+UPDATE category_groups SET archived_at = $3, updated_at = now()
+WHERE id = $1 AND user_id = $2
+RETURNING id, user_id, name, sort_order, archived_at, created_at, updated_at
 `
 
 type SetCategoryGroupArchivedParams struct {
@@ -236,9 +531,55 @@ type SetCategoryGroupArchivedParams struct {
 	ArchivedAt *time.Time
 }
 
-func (q *Queries) SetCategoryGroupArchived(ctx context.Context, arg SetCategoryGroupArchivedParams) error {
-	_, err := q.db.Exec(ctx, setCategoryGroupArchived, arg.ID, arg.UserID, arg.ArchivedAt)
-	return err
+func (q *Queries) SetCategoryGroupArchived(ctx context.Context, arg SetCategoryGroupArchivedParams) (CategoryGroup, error) {
+	row := q.db.QueryRow(ctx, setCategoryGroupArchived, arg.ID, arg.UserID, arg.ArchivedAt)
+	var i CategoryGroup
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.SortOrder,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const setCategoryGroupSortOrder = `-- name: SetCategoryGroupSortOrder :execrows
+UPDATE category_groups SET sort_order = $3, updated_at = now() WHERE id = $1 AND user_id = $2
+`
+
+type SetCategoryGroupSortOrderParams struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	SortOrder int32
+}
+
+func (q *Queries) SetCategoryGroupSortOrder(ctx context.Context, arg SetCategoryGroupSortOrderParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setCategoryGroupSortOrder, arg.ID, arg.UserID, arg.SortOrder)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const setCategorySortOrder = `-- name: SetCategorySortOrder :execrows
+UPDATE categories SET sort_order = $3, updated_at = now() WHERE id = $1 AND user_id = $2
+`
+
+type SetCategorySortOrderParams struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	SortOrder int32
+}
+
+func (q *Queries) SetCategorySortOrder(ctx context.Context, arg SetCategorySortOrderParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setCategorySortOrder, arg.ID, arg.UserID, arg.SortOrder)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateCategory = `-- name: UpdateCategory :one

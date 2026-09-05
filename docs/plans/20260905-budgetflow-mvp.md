@@ -85,12 +85,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 6: Categories and category groups API
 **Files:**
   - Create: `backend/internal/categories/`, queries in `backend/internal/db/queries/categories.sql`
-  - [ ] CRUD + reorder for category groups and categories; icon and color fields
-  - [ ] category budget type (fixed, variable, sinking fund, debt, savings-goal) and rollover rule per category
-  - [ ] archive and merge (merge reassigns transactions and allocations, records audit event)
-  - [ ] seed default groups/categories from the PRD list on first budget creation or via explicit endpoint
-  - [ ] write tests: reorder persistence, merge correctness (totals preserved), archive with existing transactions
-  - [ ] run project test suite - must pass before task 7
+  - [x] CRUD + reorder for category groups and categories; icon and color fields
+  - [x] category budget type (fixed, variable, sinking fund, debt, savings-goal) and rollover rule per category
+  - [x] archive and merge (merge reassigns transactions and allocations, records audit event)
+  - [x] seed default groups/categories from the PRD list on first budget creation or via explicit endpoint
+  - [x] write tests: reorder persistence, merge correctness (totals preserved), archive with existing transactions
+  - [x] run project test suite - must pass before task 7
 
 ### Task 7: Budget periods and allocations API
 **Files:**
