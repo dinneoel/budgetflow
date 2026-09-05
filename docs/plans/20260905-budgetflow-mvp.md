@@ -197,13 +197,13 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 17: Frontend — budget workspace
 **Files:**
   - Create: `frontend/src/features/budget/`
-  - [ ] monthly view with month switcher; create month (empty or copy prior)
-  - [ ] header: total income, "Available to assign" with explicit labeling, budget notes
-  - [ ] category table grouped by category group: budgeted, activity, remaining, status badge (color + icon + text, never color alone); inline editing of allocations
-  - [ ] move-money dialog between categories; suggested actions on over-budget rows
-  - [ ] responsive: table collapses to stacked cards on mobile
-  - [ ] write tests: allocation editing updates unallocated display, status badges by state, move-money flow
-  - [ ] run project test suite - must pass before task 18
+  - [x] monthly view with month switcher; create month (empty or copy prior)
+  - [x] header: total income, "Available to assign" with explicit labeling, budget notes
+  - [x] category table grouped by category group: budgeted, activity, remaining, status badge (color + icon + text, never color alone); inline editing of allocations
+  - [x] move-money dialog between categories; suggested actions on over-budget rows
+  - [x] responsive: table collapses to stacked cards on mobile
+  - [x] write tests: allocation editing updates unallocated display, status badges by state, move-money flow
+  - [x] run project test suite - must pass before task 18
 
 ### Task 18: Frontend — transactions list and editor
 **Files:**
