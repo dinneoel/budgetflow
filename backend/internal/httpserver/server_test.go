@@ -12,7 +12,7 @@ import (
 
 func TestHealthEndpoint(t *testing.T) {
 	cfg := config.Config{Port: "0", Env: "test"}
-	srv := New(cfg, slog.New(slog.DiscardHandler))
+	srv := New(cfg, slog.New(slog.DiscardHandler), nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	rec := httptest.NewRecorder()
@@ -36,7 +36,7 @@ func TestHealthEndpoint(t *testing.T) {
 
 func TestUnknownRouteReturns404(t *testing.T) {
 	cfg := config.Config{Port: "0", Env: "test"}
-	srv := New(cfg, slog.New(slog.DiscardHandler))
+	srv := New(cfg, slog.New(slog.DiscardHandler), nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/nope", nil)
 	rec := httptest.NewRecorder()

@@ -64,13 +64,13 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 4: Authentication, sessions, profile, and security baseline
 **Files:**
   - Create: `backend/internal/auth/` (handlers, service, password hashing), `backend/internal/httpserver/middleware/` (sessions, CSRF, rate limit, request logging), `backend/internal/audit/audit.go`
-  - [ ] implement sign-up (email/password, argon2id), sign-in, sign-out, sign-out-all-devices with DB-backed sessions and HttpOnly/SameSite cookies
-  - [ ] implement password reset flow: token issue + consume, delivery via a Mailer interface with a log-only dev implementation
-  - [ ] implement profile endpoints: name, locale, time zone, first day of week, default currency
-  - [ ] add middleware: authentication guard, CSRF protection, per-IP and per-account rate limiting, account lockout after repeated failures
-  - [ ] record audit events for sign-in, sign-out, password change/reset, profile changes
-  - [ ] write tests: full auth flow, lockout behavior, CSRF rejection, session invalidation, audit rows written
-  - [ ] run project test suite - must pass before task 5
+  - [x] implement sign-up (email/password, argon2id), sign-in, sign-out, sign-out-all-devices with DB-backed sessions and HttpOnly/SameSite cookies
+  - [x] implement password reset flow: token issue + consume, delivery via a Mailer interface with a log-only dev implementation
+  - [x] implement profile endpoints: name, locale, time zone, first day of week, default currency
+  - [x] add middleware: authentication guard, CSRF protection, per-IP and per-account rate limiting, account lockout after repeated failures
+  - [x] record audit events for sign-in, sign-out, password change/reset, profile changes
+  - [x] write tests: full auth flow, lockout behavior, CSRF rejection, session invalidation, audit rows written
+  - [x] run project test suite - must pass before task 5
 
 ### Task 5: Accounts API
 **Files:**

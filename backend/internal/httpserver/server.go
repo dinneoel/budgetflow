@@ -9,21 +9,39 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 
+	"budgetflow/internal/auth"
 	"budgetflow/internal/config"
+	"budgetflow/internal/db"
+	appmw "budgetflow/internal/httpserver/middleware"
 )
 
 // Server wraps the HTTP server and its dependencies.
 type Server struct {
-	cfg  config.Config
-	log  *slog.Logger
-	http *http.Server
+	cfg    config.Config
+	log    *slog.Logger
+	pool   *pgxpool.Pool
+	mailer auth.Mailer
+	http   *http.Server
 }
 
-// New builds a Server with the API router mounted.
-func New(cfg config.Config, log *slog.Logger) *Server {
-	s := &Server{cfg: cfg, log: log}
+// Option customizes Server construction (used by tests to inject fakes).
+type Option func(*Server)
+
+// WithMailer overrides the default log-only mailer.
+func WithMailer(m auth.Mailer) Option {
+	return func(s *Server) { s.mailer = m }
+}
+
+// New builds a Server with the API router mounted. pool may be nil for
+// handlers that need no database (health checks only).
+func New(cfg config.Config, log *slog.Logger, pool *pgxpool.Pool, opts ...Option) *Server {
+	s := &Server{cfg: cfg, log: log, pool: pool, mailer: auth.LogMailer{Log: log}}
+	for _, opt := range opts {
+		opt(s)
+	}
 	s.http = &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           s.Router(),
@@ -36,15 +54,44 @@ func New(cfg config.Config, log *slog.Logger) *Server {
 // so tests can exercise handlers without binding a port.
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Recoverer)
+	r.Use(chimw.RequestID)
+	r.Use(chimw.RealIP)
+	r.Use(appmw.RequestLogger(s.log))
+	r.Use(chimw.Recoverer)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
+		if s.pool != nil {
+			s.mountAuth(r)
+		}
 	})
 
 	return r
+}
+
+func (s *Server) mountAuth(r chi.Router) {
+	svc := auth.NewService(db.New(s.pool), s.mailer, s.log, s.cfg.SessionSecret)
+	h := auth.NewHandler(svc, s.log, s.cfg.Env == "prod", appmw.NewRateLimiter(20, time.Minute))
+	ipLimiter := appmw.NewRateLimiter(60, time.Minute)
+
+	r.Route("/auth", func(r chi.Router) {
+		r.Use(appmw.RateLimitByIP(ipLimiter))
+		r.Post("/sign-up", h.SignUp)
+		r.Post("/sign-in", h.SignIn)
+		r.Post("/password-reset/request", h.RequestPasswordReset)
+		r.Post("/password-reset/confirm", h.ConfirmPasswordReset)
+		r.Group(func(r chi.Router) {
+			r.Use(appmw.Authenticate(svc), appmw.CSRF(svc))
+			r.Get("/me", h.Me)
+			r.Get("/sessions", h.Sessions)
+			r.Post("/sign-out", h.SignOut)
+			r.Post("/sign-out-all", h.SignOutAll)
+		})
+	})
+	r.Group(func(r chi.Router) {
+		r.Use(appmw.Authenticate(svc), appmw.CSRF(svc))
+		r.Put("/profile", h.UpdateProfile)
+	})
 }
 
 // ListenAndServe runs the server until ctx is cancelled, then shuts down
