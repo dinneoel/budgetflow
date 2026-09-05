@@ -42,12 +42,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 **Files:**
   - Create: `backend/migrations/0001_init.up.sql` / `.down.sql` (and subsequent numbered migrations)
   - Create: `backend/sqlc.yaml`, `backend/internal/db/queries/*.sql`, generated `backend/internal/db/`
-  - [ ] write migrations for all core entities: users, sessions, password_reset_tokens, accounts, category_groups, categories, budget_periods, budget_allocations, allocation_history, transactions, transaction_splits, tags, transaction_tags, recurring_rules, goals, goal_contributions, import_batches, notifications, notification_preferences, audit_events
-  - [ ] enforce invariants in schema: amounts as BIGINT minor units, FK constraints with user scoping, unique (user_id, year, month) budget period, check constraints on transaction types and statuses, soft-delete column on transactions
-  - [ ] configure sqlc and write initial query files per entity; generate typed Go code
-  - [ ] add test helper that provisions a clean test database (migrate up/down) per test package
-  - [ ] write tests: migration up/down round-trip; constraint violation checks (duplicate period, orphaned split)
-  - [ ] run project test suite - must pass before task 3
+  - [x] write migrations for all core entities: users, sessions, password_reset_tokens, accounts, category_groups, categories, budget_periods, budget_allocations, allocation_history, transactions, transaction_splits, tags, transaction_tags, recurring_rules, goals, goal_contributions, import_batches, notifications, notification_preferences, audit_events
+  - [x] enforce invariants in schema: amounts as BIGINT minor units, FK constraints with user scoping, unique (user_id, year, month) budget period, check constraints on transaction types and statuses, soft-delete column on transactions
+  - [x] configure sqlc and write initial query files per entity; generate typed Go code
+  - [x] add test helper that provisions a clean test database (migrate up/down) per test package
+  - [x] write tests: migration up/down round-trip; constraint violation checks (duplicate period, orphaned split)
+  - [x] run project test suite - must pass before task 3
 
 ### Task 3: Money and budget-math engine (pure package)
 **Files:**

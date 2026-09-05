@@ -37,11 +37,15 @@ db-down:
 TEST_DATABASE_URL ?= postgres://budgetflow:budgetflow@localhost:5432/budgetflow_test?sslmode=disable
 DATABASE_URL ?= postgres://budgetflow:budgetflow@localhost:5432/budgetflow_dev?sslmode=disable
 
+# The migrate CLI picks its driver from the URL scheme; we use the pgx/v5 driver.
+MIGRATE = go run -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate
+MIGRATE_URL = $(subst postgres://,pgx5://,$(DATABASE_URL))
+
 migrate-up:
-	cd backend && go run github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$(DATABASE_URL)" up
+	cd backend && $(MIGRATE) -path migrations -database "$(MIGRATE_URL)" up
 
 migrate-down:
-	cd backend && go run github.com/golang-migrate/migrate/v4/cmd/migrate -path migrations -database "$(DATABASE_URL)" down 1
+	cd backend && $(MIGRATE) -path migrations -database "$(MIGRATE_URL)" down 1
 
 sqlc:
 	cd backend && go run github.com/sqlc-dev/sqlc/cmd/sqlc generate
