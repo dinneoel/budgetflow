@@ -24,6 +24,7 @@ import (
 	"budgetflow/internal/importer"
 	"budgetflow/internal/notifications"
 	"budgetflow/internal/recurring"
+	"budgetflow/internal/reports"
 	"budgetflow/internal/transactions"
 	"budgetflow/internal/users"
 )
@@ -109,6 +110,7 @@ func (s *Server) mountAuth(r chi.Router) {
 		goals.NewHandler(goals.NewService(db.New(s.pool)), s.log).Mount(r)
 		notifications.NewHandler(notifications.NewService(db.New(s.pool)), engine, s.log).Mount(r)
 		exporter.NewHandler(exporter.NewService(s.pool), s.log).Mount(r)
+		reports.NewHandler(reports.NewService(s.pool), s.log).Mount(r)
 		users.NewHandler(users.NewService(s.pool), s.log, s.cfg.Env == "prod").Mount(r)
 		// Budget, transaction, and recurring writes can change category
 		// spending or allocations, so their routes re-evaluate the

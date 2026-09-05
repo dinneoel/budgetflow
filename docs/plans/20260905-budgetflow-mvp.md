@@ -169,11 +169,11 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 14: Dashboard and reports API
 **Files:**
   - Create: `backend/internal/reports/`, queries in `backend/internal/db/queries/reports.sql`
-  - [ ] dashboard endpoint: total available balance (included accounts), MTD income/spending, remaining budget, budget health indicator, categories near/over limit, upcoming bills, recent transactions, goal progress
-  - [ ] report endpoints: spending by category, monthly spending trend, income vs expenses, cash-flow timeline, net worth across included accounts, top payees
-  - [ ] all reports scoped to the budget currency; foreign-currency accounts listed as informational balances, never converted
-  - [ ] write tests: aggregates against a seeded fixture set (transfers and refunds handled correctly), account-inclusion flag respected
-  - [ ] run project test suite - must pass before task 15
+  - [x] dashboard endpoint: total available balance (included accounts), MTD income/spending, remaining budget, budget health indicator, categories near/over limit, upcoming bills, recent transactions, goal progress
+  - [x] report endpoints: spending by category, monthly spending trend, income vs expenses, cash-flow timeline, net worth across included accounts, top payees
+  - [x] all reports scoped to the budget currency; foreign-currency accounts listed as informational balances, never converted
+  - [x] write tests: aggregates against a seeded fixture set (transfers and refunds handled correctly), account-inclusion flag respected
+  - [x] run project test suite - must pass before task 15
 
 ### Task 15: Frontend foundation — auth, app shell, API client
 **Files:**
