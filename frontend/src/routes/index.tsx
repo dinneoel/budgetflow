@@ -12,6 +12,7 @@ import { BudgetPage } from '../features/budget/BudgetPage'
 import { CategoriesPage } from '../features/categories/CategoriesPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { GoalsPage } from '../features/goals/GoalsPage'
+import { RecurringPage } from '../features/recurring/RecurringPage'
 import { ReportsPage } from '../features/reports/ReportsPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { TransactionsPage } from '../features/transactions/TransactionsPage'
@@ -33,6 +34,7 @@ export function AppRoutes() {
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/recurring" element={<RecurringPage />} />
             <Route path="/goals" element={<GoalsPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />

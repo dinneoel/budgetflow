@@ -1,11 +1,13 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useIsDesktop } from '../../hooks/useMediaQuery'
 import { useCurrentUser, useSignOut } from '../../features/auth/useAuth'
+import { NotificationCenter } from '../../features/notifications/NotificationCenter'
 
 const navItems = [
   { to: '/', label: 'Dashboard' },
   { to: '/budget', label: 'Budget' },
   { to: '/transactions', label: 'Transactions' },
+  { to: '/recurring', label: 'Recurring' },
   { to: '/goals', label: 'Goals' },
   { to: '/reports', label: 'Reports' },
 ]
@@ -41,7 +43,10 @@ function DesktopSidebar() {
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white px-4 py-6">
-      <p className="px-3 text-xl font-bold text-indigo-600">BudgetFlow</p>
+      <div className="flex items-center justify-between px-3">
+        <p className="text-xl font-bold text-indigo-600">BudgetFlow</p>
+        <NotificationCenter />
+      </div>
       <nav aria-label="Primary" className="mt-6 flex flex-1 flex-col gap-1">
         {navItems.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.to === '/'} className={navLinkClass}>
@@ -104,9 +109,12 @@ function MobileHeader() {
   return (
     <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
       <p className="text-lg font-bold text-indigo-600">BudgetFlow</p>
-      <Link to="/settings" className="text-sm font-medium text-gray-700">
-        Settings
-      </Link>
+      <div className="flex items-center gap-2">
+        <NotificationCenter />
+        <Link to="/settings" className="text-sm font-medium text-gray-700">
+          Settings
+        </Link>
+      </div>
     </header>
   )
 }

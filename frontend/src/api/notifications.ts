@@ -1,4 +1,4 @@
-import { get, put } from './client'
+import { get, post, put } from './client'
 
 export const notificationTypes = [
   'category_threshold',
@@ -41,4 +41,50 @@ export async function setNotificationPreference(
 ): Promise<NotificationPreference> {
   const res = await put<{ preference: NotificationPreference }>('/notifications/preferences', pref)
   return res.preference
+}
+
+export interface AppNotification {
+  id: string
+  type: NotificationType
+  title: string
+  body: string
+  actionUrl: string
+  read: boolean
+  readAt: string | null
+  createdAt: string
+}
+
+export interface NotificationPage {
+  notifications: AppNotification[]
+  unreadCount: number
+  limit: number
+  offset: number
+}
+
+export async function listNotifications(
+  limit = 20,
+  offset = 0,
+  signal?: AbortSignal,
+): Promise<NotificationPage> {
+  return get<NotificationPage>(`/notifications?limit=${limit}&offset=${offset}`, signal)
+}
+
+export async function getUnreadCount(signal?: AbortSignal): Promise<number> {
+  const res = await get<{ unreadCount: number }>('/notifications/unread-count', signal)
+  return res.unreadCount
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await post(`/notifications/${id}/read`)
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await post('/notifications/read-all')
+}
+
+// Runs the scheduled evaluator server-side so freshly-met conditions (bill
+// due, month missing, goal behind) surface without waiting for a write.
+export async function evaluateNotifications(): Promise<number> {
+  const res = await post<{ unreadCount: number }>('/notifications/evaluate')
+  return res.unreadCount
 }

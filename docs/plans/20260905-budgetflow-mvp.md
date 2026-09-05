@@ -219,11 +219,11 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 19: Frontend — recurring bills, goals, and notifications
 **Files:**
   - Create: `frontend/src/features/recurring/`, `frontend/src/features/goals/`, `frontend/src/features/notifications/`
-  - [ ] recurring page: rule list with next due dates, create/edit form, mark-as-paid and match-to-transaction actions
-  - [ ] goals page: goal cards with progress bars, target/date form, contribution recording, required-monthly-contribution and behind-schedule indicator
-  - [ ] notification center: bell with unread badge, list panel, mark read, links to the relevant screen; each warning includes a suggested action per PRD copy guidelines
-  - [ ] write tests: recurring creation with next-due display, goal progress rendering, notification read state
-  - [ ] run project test suite - must pass before task 20
+  - [x] recurring page: rule list with next due dates, create/edit form, mark-as-paid and match-to-transaction actions
+  - [x] goals page: goal cards with progress bars, target/date form, contribution recording, required-monthly-contribution and behind-schedule indicator
+  - [x] notification center: bell with unread badge, list panel, mark read, links to the relevant screen; each warning includes a suggested action per PRD copy guidelines
+  - [x] write tests: recurring creation with next-due display, goal progress rendering, notification read state
+  - [x] run project test suite - must pass before task 20
 
 ### Task 20: Frontend — dashboard, reports, and import/export wizard
 **Files:**
