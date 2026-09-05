@@ -19,6 +19,7 @@ import (
 	"budgetflow/internal/config"
 	"budgetflow/internal/db"
 	appmw "budgetflow/internal/httpserver/middleware"
+	"budgetflow/internal/transactions"
 )
 
 // Server wraps the HTTP server and its dependencies.
@@ -97,6 +98,7 @@ func (s *Server) mountAuth(r chi.Router) {
 		accounts.NewHandler(accounts.NewService(db.New(s.pool)), s.log).Mount(r)
 		categories.NewHandler(categories.NewService(s.pool), s.log).Mount(r)
 		budgets.NewHandler(budgets.NewService(s.pool), s.log).Mount(r)
+		transactions.NewHandler(transactions.NewService(s.pool), s.log).Mount(r)
 	})
 }
 

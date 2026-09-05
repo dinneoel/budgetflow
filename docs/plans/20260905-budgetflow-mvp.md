@@ -106,14 +106,14 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 8: Transactions API (all types, splits, bulk, duplicates)
 **Files:**
   - Create: `backend/internal/transactions/`, queries in `backend/internal/db/queries/transactions.sql`
-  - [ ] create/edit/duplicate/soft-delete/restore for income, expense, refund, adjustment transactions; category required except for transfers
-  - [ ] transfers as paired ledger entries between accounts, excluded from spending analytics
-  - [ ] splits: allocate one transaction across 2+ categories, amounts must sum to the parent
-  - [ ] filters (date range, account, category, payee, amount range, status, type, tags) and text search (payee, notes, amount); pagination
-  - [ ] bulk operations: categorize, tag, delete, mark reviewed — each recorded as one audit event with affected IDs
-  - [ ] duplicate detection on entry: same account, amount, date ±1 day, similar payee → warning flag in response
-  - [ ] write tests: each type's effect on account balance and category spending, split sum enforcement, transfer exclusion from analytics, restore correctness, bulk ops, duplicate flagging
-  - [ ] run project test suite - must pass before task 9
+  - [x] create/edit/duplicate/soft-delete/restore for income, expense, refund, adjustment transactions; category required except for transfers
+  - [x] transfers as paired ledger entries between accounts, excluded from spending analytics
+  - [x] splits: allocate one transaction across 2+ categories, amounts must sum to the parent
+  - [x] filters (date range, account, category, payee, amount range, status, type, tags) and text search (payee, notes, amount); pagination
+  - [x] bulk operations: categorize, tag, delete, mark reviewed — each recorded as one audit event with affected IDs
+  - [x] duplicate detection on entry: same account, amount, date ±1 day, similar payee → warning flag in response
+  - [x] write tests: each type's effect on account balance and category spending, split sum enforcement, transfer exclusion from analytics, restore correctness, bulk ops, duplicate flagging
+  - [x] run project test suite - must pass before task 9
 
 ### Task 9: Recurring bills and subscriptions API
 **Files:**

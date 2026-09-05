@@ -12,6 +12,119 @@ import (
 	"github.com/google/uuid"
 )
 
+const bulkSetCategory = `-- name: BulkSetCategory :many
+UPDATE transactions SET category_id = $1, updated_at = now()
+WHERE user_id = $2 AND id = ANY($3::uuid[]) AND deleted_at IS NULL AND type <> 'transfer'
+RETURNING id
+`
+
+type BulkSetCategoryParams struct {
+	CategoryID *uuid.UUID
+	UserID     uuid.UUID
+	Ids        []uuid.UUID
+}
+
+func (q *Queries) BulkSetCategory(ctx context.Context, arg BulkSetCategoryParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, bulkSetCategory, arg.CategoryID, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const bulkSetReviewed = `-- name: BulkSetReviewed :many
+UPDATE transactions SET reviewed = $1, updated_at = now()
+WHERE user_id = $2 AND id = ANY($3::uuid[]) AND deleted_at IS NULL
+RETURNING id
+`
+
+type BulkSetReviewedParams struct {
+	Reviewed bool
+	UserID   uuid.UUID
+	Ids      []uuid.UUID
+}
+
+func (q *Queries) BulkSetReviewed(ctx context.Context, arg BulkSetReviewedParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, bulkSetReviewed, arg.Reviewed, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const bulkSoftDelete = `-- name: BulkSoftDelete :many
+UPDATE transactions SET deleted_at = now(), updated_at = now()
+WHERE user_id = $1 AND (id = ANY($2::uuid[]) OR transfer_pair_id = ANY($2::uuid[])) AND deleted_at IS NULL
+RETURNING id
+`
+
+type BulkSoftDeleteParams struct {
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+func (q *Queries) BulkSoftDelete(ctx context.Context, arg BulkSoftDeleteParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, bulkSoftDelete, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const bulkTag = `-- name: BulkTag :exec
+INSERT INTO transaction_tags (transaction_id, tag_id, user_id)
+SELECT t.id, $1, $2 FROM transactions t
+WHERE t.user_id = $2 AND t.id = ANY($3::uuid[]) AND t.deleted_at IS NULL
+ON CONFLICT DO NOTHING
+`
+
+type BulkTagParams struct {
+	TagID  uuid.UUID
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+func (q *Queries) BulkTag(ctx context.Context, arg BulkTagParams) error {
+	_, err := q.db.Exec(ctx, bulkTag, arg.TagID, arg.UserID, arg.Ids)
+	return err
+}
+
 const createTag = `-- name: CreateTag :one
 INSERT INTO tags (user_id, name) VALUES ($1, $2)
 ON CONFLICT (user_id, name) DO UPDATE SET name = EXCLUDED.name
@@ -144,6 +257,128 @@ func (q *Queries) DeleteSplitsByTransaction(ctx context.Context, arg DeleteSplit
 	return err
 }
 
+const deleteSplitsByTransactions = `-- name: DeleteSplitsByTransactions :exec
+DELETE FROM transaction_splits WHERE user_id = $1 AND transaction_id = ANY($2::uuid[])
+`
+
+type DeleteSplitsByTransactionsParams struct {
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+func (q *Queries) DeleteSplitsByTransactions(ctx context.Context, arg DeleteSplitsByTransactionsParams) error {
+	_, err := q.db.Exec(ctx, deleteSplitsByTransactions, arg.UserID, arg.Ids)
+	return err
+}
+
+const deleteTagsByTransaction = `-- name: DeleteTagsByTransaction :exec
+DELETE FROM transaction_tags WHERE transaction_id = $1 AND user_id = $2
+`
+
+type DeleteTagsByTransactionParams struct {
+	TransactionID uuid.UUID
+	UserID        uuid.UUID
+}
+
+func (q *Queries) DeleteTagsByTransaction(ctx context.Context, arg DeleteTagsByTransactionParams) error {
+	_, err := q.db.Exec(ctx, deleteTagsByTransaction, arg.TransactionID, arg.UserID)
+	return err
+}
+
+const filterTransactionIDs = `-- name: FilterTransactionIDs :many
+SELECT id FROM transactions
+WHERE user_id = $1 AND id = ANY($2::uuid[]) AND deleted_at IS NULL
+`
+
+type FilterTransactionIDsParams struct {
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+func (q *Queries) FilterTransactionIDs(ctx context.Context, arg FilterTransactionIDsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, filterTransactionIDs, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findDuplicateCandidates = `-- name: FindDuplicateCandidates :many
+SELECT id, user_id, account_id, category_id, type, status, amount, date, payee, notes, reviewed, transfer_pair_id, recurring_rule_id, import_batch_id, deleted_at, created_at, updated_at FROM transactions
+WHERE user_id = $1 AND account_id = $2 AND amount = $3
+  AND date BETWEEN $4 AND $5
+  AND deleted_at IS NULL AND id <> $6
+ORDER BY date, created_at
+`
+
+type FindDuplicateCandidatesParams struct {
+	UserID    uuid.UUID
+	AccountID uuid.UUID
+	Amount    int64
+	DateFrom  time.Time
+	DateTo    time.Time
+	ExcludeID uuid.UUID
+}
+
+// Candidates for duplicate detection: same account, same signed amount, date
+// within the window. Payee similarity is decided in Go.
+func (q *Queries) FindDuplicateCandidates(ctx context.Context, arg FindDuplicateCandidatesParams) ([]Transaction, error) {
+	rows, err := q.db.Query(ctx, findDuplicateCandidates,
+		arg.UserID,
+		arg.AccountID,
+		arg.Amount,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.ExcludeID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Transaction
+	for rows.Next() {
+		var i Transaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AccountID,
+			&i.CategoryID,
+			&i.Type,
+			&i.Status,
+			&i.Amount,
+			&i.Date,
+			&i.Payee,
+			&i.Notes,
+			&i.Reviewed,
+			&i.TransferPairID,
+			&i.RecurringRuleID,
+			&i.ImportBatchID,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTransaction = `-- name: GetTransaction :one
 SELECT id, user_id, account_id, category_id, type, status, amount, date, payee, notes, reviewed, transfer_pair_id, recurring_rule_id, import_batch_id, deleted_at, created_at, updated_at FROM transactions WHERE id = $1 AND user_id = $2
 `
@@ -216,6 +451,85 @@ func (q *Queries) ListSplitsByTransaction(ctx context.Context, arg ListSplitsByT
 	return items, nil
 }
 
+const listSplitsByTransactions = `-- name: ListSplitsByTransactions :many
+SELECT id, user_id, transaction_id, category_id, amount, memo, created_at, updated_at FROM transaction_splits
+WHERE user_id = $1 AND transaction_id = ANY($2::uuid[])
+ORDER BY created_at
+`
+
+type ListSplitsByTransactionsParams struct {
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+func (q *Queries) ListSplitsByTransactions(ctx context.Context, arg ListSplitsByTransactionsParams) ([]TransactionSplit, error) {
+	rows, err := q.db.Query(ctx, listSplitsByTransactions, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TransactionSplit
+	for rows.Next() {
+		var i TransactionSplit
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TransactionID,
+			&i.CategoryID,
+			&i.Amount,
+			&i.Memo,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTagsByTransactions = `-- name: ListTagsByTransactions :many
+SELECT tt.transaction_id, g.id, g.name
+FROM transaction_tags tt
+JOIN tags g ON g.id = tt.tag_id
+WHERE tt.user_id = $1 AND tt.transaction_id = ANY($2::uuid[])
+ORDER BY g.name
+`
+
+type ListTagsByTransactionsParams struct {
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+type ListTagsByTransactionsRow struct {
+	TransactionID uuid.UUID
+	ID            uuid.UUID
+	Name          string
+}
+
+func (q *Queries) ListTagsByTransactions(ctx context.Context, arg ListTagsByTransactionsParams) ([]ListTagsByTransactionsRow, error) {
+	rows, err := q.db.Query(ctx, listTagsByTransactions, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTagsByTransactionsRow
+	for rows.Next() {
+		var i ListTagsByTransactionsRow
+		if err := rows.Scan(&i.TransactionID, &i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTagsByUser = `-- name: ListTagsByUser :many
 SELECT id, user_id, name, created_at FROM tags WHERE user_id = $1 ORDER BY name
 `
@@ -234,6 +548,121 @@ func (q *Queries) ListTagsByUser(ctx context.Context, userID uuid.UUID) ([]Tag, 
 			&i.UserID,
 			&i.Name,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTransactions = `-- name: ListTransactions :many
+SELECT t.id, t.user_id, t.account_id, t.category_id, t.type, t.status, t.amount, t.date, t.payee, t.notes, t.reviewed, t.transfer_pair_id, t.recurring_rule_id, t.import_batch_id, t.deleted_at, t.created_at, t.updated_at, count(*) OVER ()::bigint AS total_count
+FROM transactions t
+WHERE t.user_id = $1
+  AND (CASE WHEN $2::bool THEN t.deleted_at IS NOT NULL ELSE t.deleted_at IS NULL END)
+  AND ($3::uuid IS NULL OR t.account_id = $3)
+  AND ($4::uuid IS NULL
+       OR t.category_id = $4
+       OR EXISTS (SELECT 1 FROM transaction_splits s
+                  WHERE s.transaction_id = t.id AND s.category_id = $4))
+  AND ($5::date IS NULL OR t.date >= $5)
+  AND ($6::date IS NULL OR t.date <= $6)
+  AND ($7::text IS NULL OR t.type = $7)
+  AND ($8::text IS NULL OR t.status = $8)
+  AND ($9::bool IS NULL OR t.reviewed = $9)
+  AND ($10::text IS NULL OR t.payee ILIKE '%' || $10 || '%')
+  AND ($11::bigint IS NULL OR abs(t.amount) >= $11)
+  AND ($12::bigint IS NULL OR abs(t.amount) <= $12)
+  AND ($13::text IS NULL
+       OR EXISTS (SELECT 1 FROM transaction_tags tt JOIN tags g ON g.id = tt.tag_id
+                  WHERE tt.transaction_id = t.id AND g.name = $13))
+  AND (($14::text IS NULL AND $15::bigint IS NULL)
+       OR t.payee ILIKE '%' || $14 || '%'
+       OR t.notes ILIKE '%' || $14 || '%'
+       OR ($15::bigint IS NOT NULL AND abs(t.amount) = $15))
+ORDER BY t.date DESC, t.created_at DESC
+LIMIT $17 OFFSET $16
+`
+
+type ListTransactionsParams struct {
+	UserID       uuid.UUID
+	Deleted      bool
+	AccountID    *uuid.UUID
+	CategoryID   *uuid.UUID
+	DateFrom     *time.Time
+	DateTo       *time.Time
+	Type         *string
+	Status       *string
+	Reviewed     *bool
+	Payee        *string
+	AmountMin    *int64
+	AmountMax    *int64
+	Tag          *string
+	Search       *string
+	SearchAmount *int64
+	RowOffset    int32
+	RowLimit     int32
+}
+
+type ListTransactionsRow struct {
+	Transaction Transaction
+	TotalCount  int64
+}
+
+// ListTransactions applies every optional filter; NULL means "not filtered".
+// Amount filters and amount search compare magnitudes (abs) so users can type
+// positive numbers regardless of ledger sign. Category filter matches the
+// transaction's own category or any of its split categories.
+func (q *Queries) ListTransactions(ctx context.Context, arg ListTransactionsParams) ([]ListTransactionsRow, error) {
+	rows, err := q.db.Query(ctx, listTransactions,
+		arg.UserID,
+		arg.Deleted,
+		arg.AccountID,
+		arg.CategoryID,
+		arg.DateFrom,
+		arg.DateTo,
+		arg.Type,
+		arg.Status,
+		arg.Reviewed,
+		arg.Payee,
+		arg.AmountMin,
+		arg.AmountMax,
+		arg.Tag,
+		arg.Search,
+		arg.SearchAmount,
+		arg.RowOffset,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListTransactionsRow
+	for rows.Next() {
+		var i ListTransactionsRow
+		if err := rows.Scan(
+			&i.Transaction.ID,
+			&i.Transaction.UserID,
+			&i.Transaction.AccountID,
+			&i.Transaction.CategoryID,
+			&i.Transaction.Type,
+			&i.Transaction.Status,
+			&i.Transaction.Amount,
+			&i.Transaction.Date,
+			&i.Transaction.Payee,
+			&i.Transaction.Notes,
+			&i.Transaction.Reviewed,
+			&i.Transaction.TransferPairID,
+			&i.Transaction.RecurringRuleID,
+			&i.Transaction.ImportBatchID,
+			&i.Transaction.DeletedAt,
+			&i.Transaction.CreatedAt,
+			&i.Transaction.UpdatedAt,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}
@@ -297,7 +726,8 @@ func (q *Queries) ListTransactionsByUser(ctx context.Context, arg ListTransactio
 }
 
 const restoreTransaction = `-- name: RestoreTransaction :exec
-UPDATE transactions SET deleted_at = NULL, updated_at = now() WHERE id = $1 AND user_id = $2
+UPDATE transactions SET deleted_at = NULL, updated_at = now()
+WHERE user_id = $2 AND (id = $1 OR transfer_pair_id = $1) AND deleted_at IS NOT NULL
 `
 
 type RestoreTransactionParams struct {
@@ -310,8 +740,24 @@ func (q *Queries) RestoreTransaction(ctx context.Context, arg RestoreTransaction
 	return err
 }
 
+const setTransferPair = `-- name: SetTransferPair :exec
+UPDATE transactions SET transfer_pair_id = $3 WHERE id = $1 AND user_id = $2
+`
+
+type SetTransferPairParams struct {
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	TransferPairID *uuid.UUID
+}
+
+func (q *Queries) SetTransferPair(ctx context.Context, arg SetTransferPairParams) error {
+	_, err := q.db.Exec(ctx, setTransferPair, arg.ID, arg.UserID, arg.TransferPairID)
+	return err
+}
+
 const softDeleteTransaction = `-- name: SoftDeleteTransaction :exec
-UPDATE transactions SET deleted_at = now(), updated_at = now() WHERE id = $1 AND user_id = $2
+UPDATE transactions SET deleted_at = now(), updated_at = now()
+WHERE user_id = $2 AND (id = $1 OR transfer_pair_id = $1) AND deleted_at IS NULL
 `
 
 type SoftDeleteTransactionParams struct {
@@ -319,6 +765,8 @@ type SoftDeleteTransactionParams struct {
 	UserID uuid.UUID
 }
 
+// Soft delete / restore act on the transaction and its transfer pair (if any)
+// so a transfer never ends up with one live and one deleted leg.
 func (q *Queries) SoftDeleteTransaction(ctx context.Context, arg SoftDeleteTransactionParams) error {
 	_, err := q.db.Exec(ctx, softDeleteTransaction, arg.ID, arg.UserID)
 	return err
