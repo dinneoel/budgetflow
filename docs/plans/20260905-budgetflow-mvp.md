@@ -178,12 +178,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 15: Frontend foundation — auth, app shell, API client
 **Files:**
   - Create: `frontend/src/api/` (typed client, TanStack Query hooks), `frontend/src/routes/`, `frontend/src/components/layout/` (sidebar, mobile nav), auth pages
-  - [ ] typed API client with CSRF token handling, error normalization, and auth-expiry redirect
-  - [ ] sign-up, sign-in, password-reset, profile/settings pages with form validation (react-hook-form + zod)
-  - [ ] app shell: persistent desktop sidebar (Dashboard, Budget, Transactions, Goals, Reports), responsive mobile navigation with always-visible quick-add button, protected routes
-  - [ ] empty states for first-time use on each primary area
-  - [ ] write tests: auth form validation, protected-route redirect, shell renders nav on desktop and mobile viewports
-  - [ ] run project test suite - must pass before task 16
+  - [x] typed API client with CSRF token handling, error normalization, and auth-expiry redirect
+  - [x] sign-up, sign-in, password-reset, profile/settings pages with form validation (react-hook-form + zod)
+  - [x] app shell: persistent desktop sidebar (Dashboard, Budget, Transactions, Goals, Reports), responsive mobile navigation with always-visible quick-add button, protected routes
+  - [x] empty states for first-time use on each primary area
+  - [x] write tests: auth form validation, protected-route redirect, shell renders nav on desktop and mobile viewports
+  - [x] run project test suite - must pass before task 16
 
 ### Task 16: Frontend — accounts, categories, and settings screens
 **Files:**
