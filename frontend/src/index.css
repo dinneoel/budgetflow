@@ -1,1 +1,10 @@
 @import 'tailwindcss';
+
+/* Every interactive element gets a visible keyboard focus indicator, so
+   individual components only need focus classes when they want a variant. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-indigo-600);
+    outline-offset: 2px;
+  }
+}

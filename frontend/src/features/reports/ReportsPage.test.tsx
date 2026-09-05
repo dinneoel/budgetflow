@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { runAxe } from '../../test/axe'
 import { jsonResponse, mockFetch, renderWithProviders, testUser } from '../../test/utils'
 import { ReportsPage } from './ReportsPage'
 
@@ -100,6 +101,13 @@ describe('ReportsPage', () => {
     const payees = screen.getByRole('region', { name: 'Top payees' })
     expect(await within(payees).findByText('Silpo')).toBeInTheDocument()
     expect(within(payees).getByText('4')).toBeInTheDocument()
+  })
+
+  it('has no axe violations with every report table rendered', async () => {
+    const { container } = renderReports()
+    const spending = await screen.findByRole('region', { name: 'Spending by category' })
+    await within(spending).findByText('Groceries')
+    expect(await runAxe(container)).toHaveNoViolations()
   })
 
   it('exposes CSV download links pointing at the export endpoints', async () => {

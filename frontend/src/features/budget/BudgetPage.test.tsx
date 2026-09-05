@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { AllocationDetail, BudgetPeriodDetail } from '../../api/budgets'
+import { runAxe } from '../../test/axe'
 import { jsonResponse, mockFetch, mockViewport, renderWithProviders } from '../../test/utils'
 import { BudgetPage } from './BudgetPage'
 
@@ -264,5 +265,18 @@ describe('BudgetPage', () => {
     expect(await screen.findByText('Groceries')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Essentials' })).toBeInTheDocument()
+  })
+
+  it('has no axe violations on desktop and mobile layouts', async () => {
+    setupFetch({ detail: periodDetail() })
+    const { container, unmount } = renderWithProviders(<BudgetPage />)
+    await screen.findByText('Available to assign')
+    expect(await runAxe(container)).toHaveNoViolations()
+    unmount()
+
+    mockViewport(false)
+    const mobile = renderWithProviders(<BudgetPage />)
+    await screen.findByText('Groceries')
+    expect(await runAxe(mobile.container)).toHaveNoViolations()
   })
 })

@@ -2,6 +2,7 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { runAxe } from '../../test/axe'
 import { jsonResponse, mockFetch, renderWithProviders, testUser } from '../../test/utils'
 import { SignInPage } from './SignInPage'
 
@@ -51,5 +52,15 @@ describe('SignInPage', () => {
 
     expect(await screen.findByText('dashboard home')).toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/sign-in', expect.anything())
+  })
+
+  it('has no axe violations, including with validation errors shown', async () => {
+    mockFetch(() => jsonResponse(200, {}))
+    const { container } = renderSignIn()
+    expect(await runAxe(container)).toHaveNoViolations()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+    await screen.findByText('Enter a valid email address')
+    expect(await runAxe(container)).toHaveNoViolations()
   })
 })

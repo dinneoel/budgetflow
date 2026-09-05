@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import type { ImportBatch } from '../../api/imports'
+import { runAxe } from '../../test/axe'
 import { jsonResponse, mockFetch, renderWithProviders, testUser } from '../../test/utils'
 import { ImportPage } from './ImportPage'
 
@@ -234,5 +235,16 @@ describe('ImportPage', () => {
       ([url, init]) => url === `/api/imports/${batchId}` && init?.method === 'DELETE',
     )
     expect(deleteCall).toBeDefined()
+  })
+
+  it('has no axe violations on the upload and mapping steps', async () => {
+    renderImport()
+    const container = document.body
+    await screen.findByLabelText('CSV file')
+    expect(await runAxe(container)).toHaveNoViolations()
+
+    await uploadFile()
+    await screen.findByRole('region', { name: 'Map columns' })
+    expect(await runAxe(container)).toHaveNoViolations()
   })
 })

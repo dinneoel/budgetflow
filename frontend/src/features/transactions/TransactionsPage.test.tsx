@@ -2,7 +2,8 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { Transaction } from '../../api/transactions'
-import { jsonResponse, mockFetch, renderWithProviders } from '../../test/utils'
+import { runAxe } from '../../test/axe'
+import { jsonResponse, mockFetch, mockViewport, renderWithProviders } from '../../test/utils'
 import { TransactionsPage } from './TransactionsPage'
 
 function todayString() {
@@ -307,5 +308,28 @@ describe('TransactionsPage', () => {
 
     await waitFor(() => expect(restoreCalls).toHaveLength(1))
     expect(restoreCalls[0]).toContain('/api/transactions/t9/restore')
+  })
+
+  it('collapses the table to stacked cards on mobile', async () => {
+    setupFetch()
+    mockViewport(false)
+    renderWithProviders(<TransactionsPage />)
+
+    expect(await screen.findByText('Silpo')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    // Card rows keep selection and actions available.
+    expect(screen.getByRole('checkbox', { name: 'Select Silpo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit Silpo' })).toBeInTheDocument()
+  })
+
+  it('has no axe violations on the list and in the open editor dialog', async () => {
+    setupFetch()
+    const { container } = renderWithProviders(<TransactionsPage />)
+
+    await screen.findByRole('button', { name: 'Add transaction' })
+    expect(await runAxe(container)).toHaveNoViolations()
+
+    await openEditor()
+    expect(await runAxe(container)).toHaveNoViolations()
   })
 })

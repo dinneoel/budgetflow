@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import type { Dashboard } from '../../api/reports'
+import { runAxe } from '../../test/axe'
 import { jsonResponse, mockFetch, renderWithProviders, testUser } from '../../test/utils'
 import { DashboardPage } from './DashboardPage'
 
@@ -165,5 +166,11 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Welcome to BudgetFlow')).toBeInTheDocument()
     expect(screen.queryByText('Available balance')).not.toBeInTheDocument()
+  })
+
+  it('has no axe violations on the fully populated dashboard', async () => {
+    const { container } = renderDashboard(fixture)
+    await screen.findByText('Available balance')
+    expect(await runAxe(container)).toHaveNoViolations()
   })
 })

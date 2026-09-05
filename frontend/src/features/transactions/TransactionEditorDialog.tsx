@@ -1,5 +1,6 @@
-import { useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { Account } from '../../api/accounts'
+import { ModalDialog } from '../../components/ModalDialog'
 import type { CategoryGroup } from '../../api/categories'
 import type { SplitInput, Transaction, TransactionInput } from '../../api/transactions'
 import { formatMoney, minorToInputString, parseMoneyInput } from '../../lib/money'
@@ -242,284 +243,277 @@ export function TransactionEditorDialog({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={editing ? 'Edit transaction' : 'Add transaction'}
-        onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === 'Escape') {
-            onClose()
-          }
-        }}
-        className="w-full max-w-lg rounded-lg bg-white p-4 shadow-lg"
-      >
-        <h2 className="text-lg font-semibold text-gray-900">
-          {editing ? 'Edit transaction' : 'Add transaction'}
-        </h2>
+    <ModalDialog
+      label={editing ? 'Edit transaction' : 'Add transaction'}
+      onClose={onClose}
+      className="max-w-lg"
+    >
+      <h2 className="text-lg font-semibold text-gray-900">
+        {editing ? 'Edit transaction' : 'Add transaction'}
+      </h2>
 
-        {!isTransferLeg && !isAdjustment ? (
-          <div role="group" aria-label="Transaction type" className="mt-3 flex gap-1">
-            {kindOptions.map((o) => (
-              <button
-                key={o.value}
-                type="button"
-                aria-pressed={kind === o.value}
-                // An existing transaction cannot become a transfer.
-                disabled={editing !== null && o.value === 'transfer'}
-                onClick={() => {
-                  setKind(o.value)
-                  setError(null)
-                }}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
-                  kind === o.value
-                    ? 'bg-indigo-600 text-white'
-                    : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
+      {!isTransferLeg && !isAdjustment ? (
+        <div role="group" aria-label="Transaction type" className="mt-3 flex gap-1">
+          {kindOptions.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={kind === o.value}
+              // An existing transaction cannot become a transfer.
+              disabled={editing !== null && o.value === 'transfer'}
+              onClick={() => {
+                setKind(o.value)
+                setError(null)
+              }}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-40 ${
+                kind === o.value
+                  ? 'bg-indigo-600 text-white'
+                  : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-        <form onSubmit={submit} className="mt-3 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="tx-date" className={labelClass}>
-                Date
-              </label>
-              <input
-                id="tx-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label htmlFor="tx-amount" className={labelClass}>
-                Amount
-              </label>
-              <input
-                id="tx-amount"
-                autoFocus
-                inputMode="decimal"
-                placeholder="0.00"
-                value={amountInput}
-                onChange={(e) => {
-                  setAmountInput(e.target.value)
-                  setError(null)
-                }}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          {kind === 'transfer' && !editing ? (
-            <div className="grid grid-cols-2 gap-3">
-              {accountSelect('tx-from-account', 'From account', fromAccountId, setFromAccountId)}
-              {accountSelect('tx-to-account', 'To account', toAccountId, setToAccountId)}
-            </div>
-          ) : null}
-
-          {kind !== 'transfer' ? (
-            <>
-              {accountSelect('tx-account', 'Account', accountId, setAccountId)}
-              <div>
-                <label htmlFor="tx-payee" className={labelClass}>
-                  Payee
-                </label>
-                <input
-                  id="tx-payee"
-                  type="text"
-                  value={payee}
-                  onChange={(e) => setPayee(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-
-              {splits.length === 0 ? (
-                <div>
-                  <label htmlFor="tx-category" className={labelClass}>
-                    Category
-                  </label>
-                  <select
-                    id="tx-category"
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className={`${inputClass} bg-white`}
-                  >
-                    <option value="">Choose a category…</option>
-                    {categoryOptions.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setSplits([
-                        { categoryId, amount: '', memo: '' },
-                        { categoryId: '', amount: '', memo: '' },
-                      ])
-                    }
-                    className="mt-2 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                  >
-                    Split across categories
-                  </button>
-                </div>
-              ) : (
-                <fieldset>
-                  <legend className="text-sm font-medium text-gray-700">Splits</legend>
-                  <div className="mt-1 space-y-2">
-                    {splits.map((s, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <select
-                          aria-label={`Split ${i + 1} category`}
-                          value={s.categoryId}
-                          onChange={(e) =>
-                            setSplits(
-                              splits.map((row, j) =>
-                                j === i ? { ...row, categoryId: e.target.value } : row,
-                              ),
-                            )
-                          }
-                          className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
-                        >
-                          <option value="">Category…</option>
-                          {categoryOptions.map((o) => (
-                            <option key={o.id} value={o.id}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          aria-label={`Split ${i + 1} amount`}
-                          inputMode="decimal"
-                          placeholder="0.00"
-                          value={s.amount}
-                          onChange={(e) =>
-                            setSplits(
-                              splits.map((row, j) =>
-                                j === i ? { ...row, amount: e.target.value } : row,
-                              ),
-                            )
-                          }
-                          className="block w-28 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm tabular-nums"
-                        />
-                        <input
-                          aria-label={`Split ${i + 1} memo`}
-                          type="text"
-                          placeholder="Memo"
-                          value={s.memo}
-                          onChange={(e) =>
-                            setSplits(
-                              splits.map((row, j) =>
-                                j === i ? { ...row, memo: e.target.value } : row,
-                              ),
-                            )
-                          }
-                          className="block w-28 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                        />
-                        <button
-                          type="button"
-                          aria-label={`Remove split ${i + 1}`}
-                          disabled={splits.length <= 2}
-                          onClick={() => setSplits(splits.filter((_, j) => j !== i))}
-                          className="rounded-md px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <p data-testid="split-remainder" className="mt-2 text-sm text-gray-600">
-                    Left to assign: <span className="tabular-nums">{formatMoney(remainder, currency)}</span>
-                  </p>
-                  <div className="mt-1 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSplits([...splits, { categoryId: '', amount: '', memo: '' }])}
-                      className="rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                    >
-                      Add split
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSplits([])}
-                      className="rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
-                    >
-                      Don't split
-                    </button>
-                  </div>
-                </fieldset>
-              )}
-
-              <div>
-                <label htmlFor="tx-tags" className={labelClass}>
-                  Tags (comma separated)
-                </label>
-                <input
-                  id="tx-tags"
-                  type="text"
-                  placeholder="vacation, reimbursable"
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </>
-          ) : null}
-
+      <form onSubmit={submit} className="mt-3 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="tx-notes" className={labelClass}>
-              Notes
+            <label htmlFor="tx-date" className={labelClass}>
+              Date
             </label>
             <input
-              id="tx-notes"
-              type="text"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              id="tx-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               className={inputClass}
             />
           </div>
+          <div>
+            <label htmlFor="tx-amount" className={labelClass}>
+              Amount
+            </label>
+            <input
+              id="tx-amount"
+              autoFocus
+              inputMode="decimal"
+              placeholder="0.00"
+              value={amountInput}
+              onChange={(e) => {
+                setAmountInput(e.target.value)
+                setError(null)
+              }}
+              className={inputClass}
+            />
+          </div>
+        </div>
 
-          {error ? (
-            <p role="alert" className="text-sm text-red-600">
-              {error}
-            </p>
-          ) : null}
+        {kind === 'transfer' && !editing ? (
+          <div className="grid grid-cols-2 gap-3">
+            {accountSelect('tx-from-account', 'From account', fromAccountId, setFromAccountId)}
+            {accountSelect('tx-to-account', 'To account', toAccountId, setToAccountId)}
+          </div>
+        ) : null}
 
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-            >
-              {pending ? 'Saving…' : 'Save'}
-            </button>
+        {kind !== 'transfer' ? (
+          <>
+            {accountSelect('tx-account', 'Account', accountId, setAccountId)}
+            <div>
+              <label htmlFor="tx-payee" className={labelClass}>
+                Payee
+              </label>
+              <input
+                id="tx-payee"
+                type="text"
+                value={payee}
+                onChange={(e) => setPayee(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
+            {splits.length === 0 ? (
+              <div>
+                <label htmlFor="tx-category" className={labelClass}>
+                  Category
+                </label>
+                <select
+                  id="tx-category"
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className={`${inputClass} bg-white`}
+                >
+                  <option value="">Choose a category…</option>
+                  {categoryOptions.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSplits([
+                      { categoryId, amount: '', memo: '' },
+                      { categoryId: '', amount: '', memo: '' },
+                    ])
+                  }
+                  className="mt-2 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                >
+                  Split across categories
+                </button>
+              </div>
+            ) : (
+              <fieldset>
+                <legend className="text-sm font-medium text-gray-700">Splits</legend>
+                <div className="mt-1 space-y-2">
+                  {splits.map((s, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <select
+                        aria-label={`Split ${i + 1} category`}
+                        value={s.categoryId}
+                        onChange={(e) =>
+                          setSplits(
+                            splits.map((row, j) =>
+                              j === i ? { ...row, categoryId: e.target.value } : row,
+                            ),
+                          )
+                        }
+                        className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm"
+                      >
+                        <option value="">Category…</option>
+                        {categoryOptions.map((o) => (
+                          <option key={o.id} value={o.id}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        aria-label={`Split ${i + 1} amount`}
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        value={s.amount}
+                        onChange={(e) =>
+                          setSplits(
+                            splits.map((row, j) =>
+                              j === i ? { ...row, amount: e.target.value } : row,
+                            ),
+                          )
+                        }
+                        className="block w-28 rounded-md border border-gray-300 px-2 py-1.5 text-right text-sm tabular-nums"
+                      />
+                      <input
+                        aria-label={`Split ${i + 1} memo`}
+                        type="text"
+                        placeholder="Memo"
+                        value={s.memo}
+                        onChange={(e) =>
+                          setSplits(
+                            splits.map((row, j) =>
+                              j === i ? { ...row, memo: e.target.value } : row,
+                            ),
+                          )
+                        }
+                        className="block w-28 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Remove split ${i + 1}`}
+                        disabled={splits.length <= 2}
+                        onClick={() => setSplits(splits.filter((_, j) => j !== i))}
+                        className="rounded-md px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p data-testid="split-remainder" className="mt-2 text-sm text-gray-600">
+                  Left to assign:{' '}
+                  <span className="tabular-nums">{formatMoney(remainder, currency)}</span>
+                </p>
+                <div className="mt-1 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSplits([...splits, { categoryId: '', amount: '', memo: '' }])}
+                    className="rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                  >
+                    Add split
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSplits([])}
+                    className="rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                  >
+                    Don't split
+                  </button>
+                </div>
+              </fieldset>
+            )}
+
+            <div>
+              <label htmlFor="tx-tags" className={labelClass}>
+                Tags (comma separated)
+              </label>
+              <input
+                id="tx-tags"
+                type="text"
+                placeholder="vacation, reimbursable"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </>
+        ) : null}
+
+        <div>
+          <label htmlFor="tx-notes" className={labelClass}>
+            Notes
+          </label>
+          <input
+            id="tx-notes"
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+
+        {error ? (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+          >
+            {pending ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          {editing ? (
             <button
               type="button"
-              onClick={onClose}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              disabled={pending}
+              onClick={deleteTransaction}
+              className="ml-auto rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
-              Cancel
+              Delete
             </button>
-            {editing ? (
-              <button
-                type="button"
-                disabled={pending}
-                onClick={deleteTransaction}
-                className="ml-auto rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-              >
-                Delete
-              </button>
-            ) : null}
-          </div>
-        </form>
-      </div>
-    </div>
+          ) : null}
+        </div>
+      </form>
+    </ModalDialog>
   )
 }

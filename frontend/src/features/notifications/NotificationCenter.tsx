@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { notificationTypeLabels, type AppNotification } from '../../api/notifications'
 import {
@@ -67,6 +67,7 @@ function NotificationItem({
 // mark-read actions and links to the screen each warning is about.
 export function NotificationCenter() {
   const [open, setOpen] = useState(false)
+  const bellRef = useRef<HTMLButtonElement>(null)
   const { data: unreadCount } = useUnreadCount()
   const { data: page, isLoading } = useNotifications(open)
   const evaluate = useEvaluateNotifications()
@@ -84,9 +85,19 @@ export function NotificationCenter() {
 
   const badge = unreadCount ?? 0
 
+  // Escape closes the panel from anywhere inside it and puts focus back on
+  // the bell, so keyboard users are not stranded in removed content.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' && open) {
+      setOpen(false)
+      bellRef.current?.focus()
+    }
+  }
+
   return (
-    <div className="relative">
+    <div className="relative" onKeyDown={onKeyDown}>
       <button
+        ref={bellRef}
         type="button"
         aria-label={badge > 0 ? `Notifications (${badge} unread)` : 'Notifications'}
         aria-expanded={open}

@@ -125,4 +125,17 @@ describe('NotificationCenter', () => {
     ).toBe(true)
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeInTheDocument()
   })
+
+  it('closes the panel with Escape and returns focus to the bell', async () => {
+    mockFetch(handler([{ ...overBudget }]))
+    renderWithProviders(<NotificationCenter />)
+
+    const bell = await screen.findByRole('button', { name: /Notifications/ })
+    await userEvent.click(bell)
+    expect(await screen.findByRole('region', { name: 'Notifications' })).toBeInTheDocument()
+
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByRole('region', { name: 'Notifications' })).not.toBeInTheDocument()
+    expect(bell).toHaveFocus()
+  })
 })

@@ -237,11 +237,11 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 21: Accessibility and responsive hardening
 **Files:**
   - Modify: shared components and feature screens as flagged
-  - [ ] keyboard navigation audit of essential flows (auth, quick-add transaction, budget editing, import wizard); fix focus traps and add visible focus states
-  - [ ] ARIA labels for icon buttons, charts (with table fallbacks), and form controls; status conveyed by text + icon, not color alone
-  - [ ] verify mobile layouts: tables to cards, quick-add reachable, charts readable
-  - [ ] add axe-core automated a11y checks to component tests for key screens
-  - [ ] run project test suite - must pass before task 22
+  - [x] keyboard navigation audit of essential flows (auth, quick-add transaction, budget editing, import wizard); fix focus traps and add visible focus states
+  - [x] ARIA labels for icon buttons, charts (with table fallbacks), and form controls; status conveyed by text + icon, not color alone
+  - [x] verify mobile layouts: tables to cards, quick-add reachable, charts readable
+  - [x] add axe-core automated a11y checks to component tests for key screens
+  - [x] run project test suite - must pass before task 22
 
 ### Task 22: Verify acceptance criteria
   - [ ] add an end-to-end backend integration test walking the 15 MVP acceptance criteria in sequence (sign-up through data export/deletion) against a real database
