@@ -14,6 +14,7 @@ import (
 
 	"budgetflow/internal/accounts"
 	"budgetflow/internal/auth"
+	"budgetflow/internal/budgets"
 	"budgetflow/internal/categories"
 	"budgetflow/internal/config"
 	"budgetflow/internal/db"
@@ -95,6 +96,7 @@ func (s *Server) mountAuth(r chi.Router) {
 		r.Put("/profile", h.UpdateProfile)
 		accounts.NewHandler(accounts.NewService(db.New(s.pool)), s.log).Mount(r)
 		categories.NewHandler(categories.NewService(s.pool), s.log).Mount(r)
+		budgets.NewHandler(budgets.NewService(s.pool), s.log).Mount(r)
 	})
 }
 

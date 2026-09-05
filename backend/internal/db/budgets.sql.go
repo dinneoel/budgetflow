@@ -11,6 +11,58 @@ import (
 	"github.com/google/uuid"
 )
 
+const categoryMonthlySpending = `-- name: CategoryMonthlySpending :many
+SELECT x.year, x.month, x.category_id, sum(x.spend)::bigint AS spending
+FROM (
+    SELECT extract(YEAR FROM t.date)::int AS year, extract(MONTH FROM t.date)::int AS month,
+           t.category_id::uuid AS category_id, -t.amount AS spend
+    FROM transactions t
+    WHERE t.user_id = $1 AND t.deleted_at IS NULL AND t.category_id IS NOT NULL AND t.type <> 'transfer'
+    UNION ALL
+    SELECT extract(YEAR FROM t.date)::int, extract(MONTH FROM t.date)::int,
+           s.category_id, -s.amount
+    FROM transaction_splits s
+    JOIN transactions t ON t.id = s.transaction_id
+    WHERE s.user_id = $1 AND t.deleted_at IS NULL AND t.type <> 'transfer'
+) x
+GROUP BY x.year, x.month, x.category_id
+`
+
+type CategoryMonthlySpendingRow struct {
+	Year       int32
+	Month      int32
+	CategoryID uuid.UUID
+	Spending   int64
+}
+
+// Net spending per category per calendar month: parent transactions that carry
+// a category plus split lines. Ledger amounts are signed (expense negative), so
+// spending = -amount. Transfers are never categorized and are excluded.
+func (q *Queries) CategoryMonthlySpending(ctx context.Context, userID uuid.UUID) ([]CategoryMonthlySpendingRow, error) {
+	rows, err := q.db.Query(ctx, categoryMonthlySpending, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CategoryMonthlySpendingRow
+	for rows.Next() {
+		var i CategoryMonthlySpendingRow
+		if err := rows.Scan(
+			&i.Year,
+			&i.Month,
+			&i.CategoryID,
+			&i.Spending,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createAllocationHistory = `-- name: CreateAllocationHistory :one
 INSERT INTO allocation_history (user_id, period_id, category_id, field, old_amount, new_amount)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -88,6 +140,32 @@ func (q *Queries) CreateBudgetPeriod(ctx context.Context, arg CreateBudgetPeriod
 	return i, err
 }
 
+const getBudgetAllocation = `-- name: GetBudgetAllocation :one
+SELECT id, user_id, period_id, category_id, amount, rollover, created_at, updated_at FROM budget_allocations WHERE period_id = $1 AND category_id = $2 AND user_id = $3
+`
+
+type GetBudgetAllocationParams struct {
+	PeriodID   uuid.UUID
+	CategoryID uuid.UUID
+	UserID     uuid.UUID
+}
+
+func (q *Queries) GetBudgetAllocation(ctx context.Context, arg GetBudgetAllocationParams) (BudgetAllocation, error) {
+	row := q.db.QueryRow(ctx, getBudgetAllocation, arg.PeriodID, arg.CategoryID, arg.UserID)
+	var i BudgetAllocation
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.PeriodID,
+		&i.CategoryID,
+		&i.Amount,
+		&i.Rollover,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getBudgetPeriod = `-- name: GetBudgetPeriod :one
 SELECT id, user_id, year, month, currency, planned_income, notes, created_at, updated_at FROM budget_periods WHERE user_id = $1 AND year = $2 AND month = $3
 `
@@ -100,6 +178,62 @@ type GetBudgetPeriodParams struct {
 
 func (q *Queries) GetBudgetPeriod(ctx context.Context, arg GetBudgetPeriodParams) (BudgetPeriod, error) {
 	row := q.db.QueryRow(ctx, getBudgetPeriod, arg.UserID, arg.Year, arg.Month)
+	var i BudgetPeriod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Year,
+		&i.Month,
+		&i.Currency,
+		&i.PlannedIncome,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getBudgetPeriodByID = `-- name: GetBudgetPeriodByID :one
+SELECT id, user_id, year, month, currency, planned_income, notes, created_at, updated_at FROM budget_periods WHERE id = $1 AND user_id = $2
+`
+
+type GetBudgetPeriodByIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetBudgetPeriodByID(ctx context.Context, arg GetBudgetPeriodByIDParams) (BudgetPeriod, error) {
+	row := q.db.QueryRow(ctx, getBudgetPeriodByID, arg.ID, arg.UserID)
+	var i BudgetPeriod
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Year,
+		&i.Month,
+		&i.Currency,
+		&i.PlannedIncome,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const latestBudgetPeriodBefore = `-- name: LatestBudgetPeriodBefore :one
+SELECT id, user_id, year, month, currency, planned_income, notes, created_at, updated_at FROM budget_periods
+WHERE user_id = $1 AND (year < $2 OR (year = $2 AND month < $3))
+ORDER BY year DESC, month DESC
+LIMIT 1
+`
+
+type LatestBudgetPeriodBeforeParams struct {
+	UserID uuid.UUID
+	Year   int32
+	Month  int32
+}
+
+func (q *Queries) LatestBudgetPeriodBefore(ctx context.Context, arg LatestBudgetPeriodBeforeParams) (BudgetPeriod, error) {
+	row := q.db.QueryRow(ctx, latestBudgetPeriodBefore, arg.UserID, arg.Year, arg.Month)
 	var i BudgetPeriod
 	err := row.Scan(
 		&i.ID,
@@ -180,6 +314,53 @@ func (q *Queries) ListAllocationsByPeriod(ctx context.Context, arg ListAllocatio
 			&i.Rollover,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllocationsWithRuleByUser = `-- name: ListAllocationsWithRuleByUser :many
+SELECT a.period_id, a.category_id, a.amount, a.rollover, p.year, p.month, c.rollover_rule
+FROM budget_allocations a
+JOIN budget_periods p ON p.id = a.period_id
+JOIN categories c ON c.id = a.category_id
+WHERE a.user_id = $1
+ORDER BY p.year, p.month, a.created_at
+`
+
+type ListAllocationsWithRuleByUserRow struct {
+	PeriodID     uuid.UUID
+	CategoryID   uuid.UUID
+	Amount       int64
+	Rollover     int64
+	Year         int32
+	Month        int32
+	RolloverRule string
+}
+
+func (q *Queries) ListAllocationsWithRuleByUser(ctx context.Context, userID uuid.UUID) ([]ListAllocationsWithRuleByUserRow, error) {
+	rows, err := q.db.Query(ctx, listAllocationsWithRuleByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAllocationsWithRuleByUserRow
+	for rows.Next() {
+		var i ListAllocationsWithRuleByUserRow
+		if err := rows.Scan(
+			&i.PeriodID,
+			&i.CategoryID,
+			&i.Amount,
+			&i.Rollover,
+			&i.Year,
+			&i.Month,
+			&i.RolloverRule,
 		); err != nil {
 			return nil, err
 		}

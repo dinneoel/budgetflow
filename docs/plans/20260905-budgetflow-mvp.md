@@ -95,13 +95,13 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 7: Budget periods and allocations API
 **Files:**
   - Create: `backend/internal/budgets/`, queries in `backend/internal/db/queries/budgets.sql`
-  - [ ] create monthly budget period in user's default currency; copy prior month's structure and allocations
-  - [ ] set/update planned income and per-category allocations; every change appended to allocation_history
-  - [ ] compute and return unallocated funds and per-category remaining/status using the budgetmath package
-  - [ ] apply rollover on period creation according to each category's rollover rule
-  - [ ] budget notes field per period
-  - [ ] write tests: copy-prior-month, unallocated math, rollover across two periods, history recorded on every change
-  - [ ] run project test suite - must pass before task 8
+  - [x] create monthly budget period in user's default currency; copy prior month's structure and allocations
+  - [x] set/update planned income and per-category allocations; every change appended to allocation_history
+  - [x] compute and return unallocated funds and per-category remaining/status using the budgetmath package
+  - [x] apply rollover on period creation according to each category's rollover rule
+  - [x] budget notes field per period
+  - [x] write tests: copy-prior-month, unallocated math, rollover across two periods, history recorded on every change
+  - [x] run project test suite - must pass before task 8
 
 ### Task 8: Transactions API (all types, splits, bulk, duplicates)
 **Files:**
