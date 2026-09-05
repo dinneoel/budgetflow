@@ -52,14 +52,14 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 3: Money and budget-math engine (pure package)
 **Files:**
   - Create: `backend/internal/money/money.go`, `backend/internal/budgetmath/budgetmath.go` + tests
-  - [ ] implement Money type over int64 minor units with currency code, safe add/subtract/split, and formatting metadata
-  - [ ] implement category math: `Remaining = Budgeted + Rollover − ActualSpending − ReservedUpcomingPayments`
-  - [ ] implement period math: `Unallocated = AvailableIncome + PriorRollover − Σ Allocations`
-  - [ ] implement status classification (on track / approaching limit / over budget / unfunded) with configurable threshold (default 20%)
-  - [ ] implement rollover rules: none, roll over unused balance, reset to target
-  - [ ] implement goal math: required monthly contribution and behind-schedule detection
-  - [ ] write exhaustive table-driven tests including negative amounts, zero budgets, refunds, and split rounding (splits must sum exactly to the parent amount)
-  - [ ] run project test suite - must pass before task 4
+  - [x] implement Money type over int64 minor units with currency code, safe add/subtract/split, and formatting metadata
+  - [x] implement category math: `Remaining = Budgeted + Rollover − ActualSpending − ReservedUpcomingPayments`
+  - [x] implement period math: `Unallocated = AvailableIncome + PriorRollover − Σ Allocations`
+  - [x] implement status classification (on track / approaching limit / over budget / unfunded) with configurable threshold (default 20%)
+  - [x] implement rollover rules: none, roll over unused balance, reset to target
+  - [x] implement goal math: required monthly contribution and behind-schedule detection
+  - [x] write exhaustive table-driven tests including negative amounts, zero budgets, refunds, and split rounding (splits must sum exactly to the parent amount)
+  - [x] run project test suite - must pass before task 4
 
 ### Task 4: Authentication, sessions, profile, and security baseline
 **Files:**
