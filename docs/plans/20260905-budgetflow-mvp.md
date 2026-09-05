@@ -137,13 +137,13 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 11: In-app notifications engine and API
 **Files:**
   - Create: `backend/internal/notifications/`, queries in `backend/internal/db/queries/notifications.sql`
-  - [ ] notification storage + endpoints: list, unread count, mark read/all read
-  - [ ] per-user preferences: enable/disable per type, configurable warning threshold
-  - [ ] event-driven triggers: category reaches threshold, category over budget (evaluated after transaction/allocation writes)
-  - [ ] scheduled evaluator (on-request or ticker): bill due soon, budget month not created, goal behind schedule, import needs review
-  - [ ] dedupe so the same condition doesn't re-notify every write (one active notification per condition per period)
-  - [ ] write tests: threshold crossing fires exactly once, preference suppression, bill-due timing, dedupe behavior
-  - [ ] run project test suite - must pass before task 12
+  - [x] notification storage + endpoints: list, unread count, mark read/all read
+  - [x] per-user preferences: enable/disable per type, configurable warning threshold
+  - [x] event-driven triggers: category reaches threshold, category over budget (evaluated after transaction/allocation writes)
+  - [x] scheduled evaluator (on-request or ticker): bill due soon, budget month not created, goal behind schedule, import needs review
+  - [x] dedupe so the same condition doesn't re-notify every write (one active notification per condition per period)
+  - [x] write tests: threshold crossing fires exactly once, preference suppression, bill-due timing, dedupe behavior
+  - [x] run project test suite - must pass before task 12
 
 ### Task 12: CSV import (mapping, preview, commit, batch undo)
 **Files:**

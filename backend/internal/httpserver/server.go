@@ -20,6 +20,7 @@ import (
 	"budgetflow/internal/db"
 	"budgetflow/internal/goals"
 	appmw "budgetflow/internal/httpserver/middleware"
+	"budgetflow/internal/notifications"
 	"budgetflow/internal/recurring"
 	"budgetflow/internal/transactions"
 )
@@ -94,15 +95,25 @@ func (s *Server) mountAuth(r chi.Router) {
 			r.Post("/sign-out-all", h.SignOutAll)
 		})
 	})
+	budgetsSvc := budgets.NewService(s.pool)
+	engine := notifications.NewEngine(db.New(s.pool), budgetsSvc, s.log)
+
 	r.Group(func(r chi.Router) {
 		r.Use(appmw.Authenticate(svc), appmw.CSRF(svc))
 		r.Put("/profile", h.UpdateProfile)
 		accounts.NewHandler(accounts.NewService(db.New(s.pool)), s.log).Mount(r)
 		categories.NewHandler(categories.NewService(s.pool), s.log).Mount(r)
-		budgets.NewHandler(budgets.NewService(s.pool), s.log).Mount(r)
-		transactions.NewHandler(transactions.NewService(s.pool), s.log).Mount(r)
-		recurring.NewHandler(recurring.NewService(s.pool), s.log).Mount(r)
 		goals.NewHandler(goals.NewService(db.New(s.pool)), s.log).Mount(r)
+		notifications.NewHandler(notifications.NewService(db.New(s.pool)), engine, s.log).Mount(r)
+		// Budget, transaction, and recurring writes can change category
+		// spending or allocations, so their routes re-evaluate the
+		// event-driven category triggers after each successful mutation.
+		r.Group(func(r chi.Router) {
+			r.Use(engine.AfterWrite)
+			budgets.NewHandler(budgetsSvc, s.log).Mount(r)
+			transactions.NewHandler(transactions.NewService(s.pool), s.log).Mount(r)
+			recurring.NewHandler(recurring.NewService(s.pool), s.log).Mount(r)
+		})
 	})
 }
 
