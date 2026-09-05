@@ -31,12 +31,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
   - Create: `docker-compose.yml`, `Makefile`, `.gitignore`, `README.md` (replace `readme.md`)
   - Create: `backend/go.mod`, `backend/cmd/server/main.go`, `backend/internal/config/config.go`, `backend/internal/httpserver/server.go`
   - Create: `frontend/` via Vite React-TS template, plus Tailwind, ESLint/Prettier, Vitest config
-  - [ ] initialize Go module with chi server skeleton, health endpoint `/api/health`, graceful shutdown, env-based config (DB URL, port, session secret)
-  - [ ] add docker-compose with PostgreSQL 16 (dev + test databases)
-  - [ ] scaffold Vite React-TS app with Tailwind, React Router, TanStack Query, Vitest + RTL configured
-  - [ ] add Makefile targets: `dev`, `test`, `test-backend`, `test-frontend`, `lint`, `migrate-up`, `sqlc`
-  - [ ] write tests: Go health-endpoint test; one frontend smoke render test
-  - [ ] run project test suite - must pass before task 2
+  - [x] initialize Go module with chi server skeleton, health endpoint `/api/health`, graceful shutdown, env-based config (DB URL, port, session secret)
+  - [x] add docker-compose with PostgreSQL 16 (dev + test databases)
+  - [x] scaffold Vite React-TS app with Tailwind, React Router, TanStack Query, Vitest + RTL configured
+  - [x] add Makefile targets: `dev`, `test`, `test-backend`, `test-frontend`, `lint`, `migrate-up`, `sqlc`
+  - [x] write tests: Go health-endpoint test; one frontend smoke render test
+  - [x] run project test suite - must pass before task 2
 
 ### Task 2: Database schema, migrations, and sqlc setup
 **Files:**
