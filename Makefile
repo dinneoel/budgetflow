@@ -14,8 +14,11 @@ dev-frontend:
 
 test: test-backend test-frontend
 
+# -p bounds how many packages run concurrently: each test provisions its own
+# database, and unbounded package parallelism exhausts PostgreSQL's
+# max_connections on many-core machines.
 test-backend:
-	cd backend && go test ./...
+	cd backend && go test -p 4 ./...
 
 test-frontend:
 	cd frontend && npm test

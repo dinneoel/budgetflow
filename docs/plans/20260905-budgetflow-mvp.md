@@ -244,10 +244,10 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
   - [x] run project test suite - must pass before task 22
 
 ### Task 22: Verify acceptance criteria
-  - [ ] add an end-to-end backend integration test walking the 15 MVP acceptance criteria in sequence (sign-up through data export/deletion) against a real database
-  - [ ] run full test suite (`make test`) - must pass
-  - [ ] run linters (`golangci-lint`, `eslint`) - must pass
-  - [ ] verify test coverage meets 80%+ on backend internal packages and frontend features
+  - [x] add an end-to-end backend integration test walking the 15 MVP acceptance criteria in sequence (sign-up through data export/deletion) against a real database
+  - [x] run full test suite (`make test`) - must pass
+  - [x] run linters (`golangci-lint`, `eslint`) - must pass
+  - [x] verify test coverage meets 80%+ on backend internal packages and frontend features (backend internal: 81.0% statements with cross-package merge; frontend features: 82.2% statements)
 
 ### Task 23: Update documentation
   - [ ] write README.md: project overview, architecture, local setup (docker-compose, migrations, dev servers), test/lint commands

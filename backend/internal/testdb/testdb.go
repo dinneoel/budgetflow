@@ -20,6 +20,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	pgx5 "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // database/sql driver for the migrator
 
@@ -56,7 +57,15 @@ func New(t *testing.T) *pgxpool.Pool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	pool, err := pgxpool.New(ctx, dbURL)
+	poolCfg, err := pgxpool.ParseConfig(dbURL)
+	if err != nil {
+		t.Fatalf("parse test database URL: %v", err)
+	}
+	// Cap each test pool so parallel tests stay under the server's
+	// max_connections. (Set here rather than in the URL: the option is
+	// pgxpool-only and the migrator's database/sql driver rejects it.)
+	poolCfg.MaxConns = 4
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		t.Fatalf("connect to test database: %v", err)
 	}
@@ -93,37 +102,24 @@ func createDatabase(t *testing.T) string {
 	t.Helper()
 	base := BaseURL()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	admin, err := pgxpool.New(ctx, base)
-	if err != nil {
-		t.Fatalf("parse TEST_DATABASE_URL: %v", err)
-	}
-	if err := admin.Ping(ctx); err != nil {
-		admin.Close()
-		t.Fatalf("test database server unreachable at %s (start it with `make db-up` or docker): %v", base, err)
-	}
-
 	suffix := make([]byte, 6)
 	if _, err := rand.Read(suffix); err != nil {
-		admin.Close()
 		t.Fatalf("generate database name: %v", err)
 	}
 	name := "budgetflow_test_" + hex.EncodeToString(suffix)
 
-	if _, err := admin.Exec(ctx, fmt.Sprintf("CREATE DATABASE %s", name)); err != nil {
-		admin.Close()
-		t.Fatalf("create test database %s: %v", name, err)
+	// Use short-lived single connections for CREATE/DROP DATABASE rather than
+	// holding an admin pool open for the whole test: with many test packages
+	// running in parallel, per-test admin pools exhaust the server's
+	// max_connections.
+	if err := adminExec(base, fmt.Sprintf("CREATE DATABASE %s", name)); err != nil {
+		t.Fatalf("create test database %s (is the server from `make db-up` running at %s?): %v", name, base, err)
 	}
 
 	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		if _, err := admin.Exec(ctx, fmt.Sprintf("DROP DATABASE %s WITH (FORCE)", name)); err != nil {
+		if err := adminExec(base, fmt.Sprintf("DROP DATABASE %s WITH (FORCE)", name)); err != nil {
 			t.Errorf("drop test database %s: %v", name, err)
 		}
-		admin.Close()
 	})
 
 	u, err := url.Parse(base)
@@ -132,4 +128,18 @@ func createDatabase(t *testing.T) string {
 	}
 	u.Path = "/" + name
 	return u.String()
+}
+
+// adminExec runs one statement on the admin database over a dedicated
+// connection that is closed immediately afterwards.
+func adminExec(baseURL, stmt string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	conn, err := pgx.Connect(ctx, baseURL)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = conn.Close(ctx) }()
+	_, err = conn.Exec(ctx, stmt)
+	return err
 }

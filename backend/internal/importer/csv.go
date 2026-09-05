@@ -79,9 +79,7 @@ func parseCSV(data []byte) (parsedFile, error) {
 	hasHeader := len(rows) > 1 && looksLikeHeader(rows[0])
 	header := make([]string, width)
 	if hasHeader {
-		for i, cell := range rows[0] {
-			header[i] = cell
-		}
+		copy(header, rows[0])
 		rows = rows[1:]
 	}
 	for i, name := range header {
