@@ -228,11 +228,11 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 20: Frontend — dashboard, reports, and import/export wizard
 **Files:**
   - Create: `frontend/src/features/dashboard/`, `frontend/src/features/reports/`, `frontend/src/features/import/`
-  - [ ] dashboard: balance/MTD/remaining cards, health indicator, near-limit categories, upcoming bills, recent transactions, goal progress, quick actions (add transaction, add income, transfer, create category, allocate funds)
-  - [ ] reports: spending by category (chart + accessible table equivalent), monthly trend, income vs expenses, cash flow, net worth, top payees; CSV download buttons
-  - [ ] import wizard: upload → column mapping → preview with errors and duplicate flags → commit; import-batch list with batch delete
-  - [ ] write tests: dashboard renders from fixture API responses, import wizard step flow with validation errors, report CSV download trigger
-  - [ ] run project test suite - must pass before task 21
+  - [x] dashboard: balance/MTD/remaining cards, health indicator, near-limit categories, upcoming bills, recent transactions, goal progress, quick actions (add transaction, add income, transfer, create category, allocate funds)
+  - [x] reports: spending by category (chart + accessible table equivalent), monthly trend, income vs expenses, cash flow, net worth, top payees; CSV download buttons
+  - [x] import wizard: upload → column mapping → preview with errors and duplicate flags → commit; import-batch list with batch delete
+  - [x] write tests: dashboard renders from fixture API responses, import wizard step flow with validation errors, report CSV download trigger
+  - [x] run project test suite - must pass before task 21
 
 ### Task 21: Accessibility and responsive hardening
 **Files:**

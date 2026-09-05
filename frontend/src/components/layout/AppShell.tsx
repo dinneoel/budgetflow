@@ -62,6 +62,9 @@ function DesktopSidebar() {
         <NavLink to="/categories" className={navLinkClass}>
           Categories
         </NavLink>
+        <NavLink to="/import" className={navLinkClass}>
+          Import CSV
+        </NavLink>
         <NavLink to="/settings" className={navLinkClass}>
           Settings
         </NavLink>

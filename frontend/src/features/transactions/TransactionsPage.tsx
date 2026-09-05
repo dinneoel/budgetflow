@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import type { Account } from '../../api/accounts'
 import type { CategoryGroup } from '../../api/categories'
 import {
@@ -480,6 +481,14 @@ export function TransactionsPage() {
           {showDeleted ? 'Deleted transactions' : 'Transactions'}
         </h1>
         <div className="flex gap-2">
+          {!showDeleted ? (
+            <Link
+              to="/import"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Import CSV
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={toggleDeletedView}
