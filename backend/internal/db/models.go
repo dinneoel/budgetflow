@@ -172,6 +172,7 @@ type RecurringRule struct {
 	ArchivedAt         *time.Time
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+	AnchorDate         time.Time
 }
 
 type Session struct {

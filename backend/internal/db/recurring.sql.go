@@ -13,9 +13,9 @@ import (
 )
 
 const createRecurringRule = `-- name: CreateRecurringRule :one
-INSERT INTO recurring_rules (user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at
+INSERT INTO recurring_rules (user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, anchor_date, reminder_lead_days)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at, anchor_date
 `
 
 type CreateRecurringRuleParams struct {
@@ -27,6 +27,7 @@ type CreateRecurringRuleParams struct {
 	Frequency          string
 	CustomIntervalDays *int32
 	NextDueDate        time.Time
+	AnchorDate         time.Time
 	ReminderLeadDays   int32
 }
 
@@ -40,6 +41,7 @@ func (q *Queries) CreateRecurringRule(ctx context.Context, arg CreateRecurringRu
 		arg.Frequency,
 		arg.CustomIntervalDays,
 		arg.NextDueDate,
+		arg.AnchorDate,
 		arg.ReminderLeadDays,
 	)
 	var i RecurringRule
@@ -57,12 +59,13 @@ func (q *Queries) CreateRecurringRule(ctx context.Context, arg CreateRecurringRu
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AnchorDate,
 	)
 	return i, err
 }
 
 const getRecurringRule = `-- name: GetRecurringRule :one
-SELECT id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at FROM recurring_rules WHERE id = $1 AND user_id = $2
+SELECT id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at, anchor_date FROM recurring_rules WHERE id = $1 AND user_id = $2
 `
 
 type GetRecurringRuleParams struct {
@@ -87,12 +90,13 @@ func (q *Queries) GetRecurringRule(ctx context.Context, arg GetRecurringRulePara
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AnchorDate,
 	)
 	return i, err
 }
 
 const listRecurringRulesByUser = `-- name: ListRecurringRulesByUser :many
-SELECT id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at FROM recurring_rules WHERE user_id = $1 AND archived_at IS NULL ORDER BY next_due_date
+SELECT id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at, anchor_date FROM recurring_rules WHERE user_id = $1 AND archived_at IS NULL ORDER BY next_due_date
 `
 
 func (q *Queries) ListRecurringRulesByUser(ctx context.Context, userID uuid.UUID) ([]RecurringRule, error) {
@@ -118,6 +122,7 @@ func (q *Queries) ListRecurringRulesByUser(ctx context.Context, userID uuid.UUID
 			&i.ArchivedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AnchorDate,
 		); err != nil {
 			return nil, err
 		}
@@ -130,7 +135,7 @@ func (q *Queries) ListRecurringRulesByUser(ctx context.Context, userID uuid.UUID
 }
 
 const listRulesDueBy = `-- name: ListRulesDueBy :many
-SELECT id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at FROM recurring_rules
+SELECT id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at, anchor_date FROM recurring_rules
 WHERE user_id = $1 AND archived_at IS NULL AND next_due_date <= $2
 ORDER BY next_due_date
 `
@@ -163,6 +168,7 @@ func (q *Queries) ListRulesDueBy(ctx context.Context, arg ListRulesDueByParams) 
 			&i.ArchivedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AnchorDate,
 		); err != nil {
 			return nil, err
 		}
@@ -189,11 +195,82 @@ func (q *Queries) SetRecurringRuleArchived(ctx context.Context, arg SetRecurring
 	return err
 }
 
+const setRecurringRuleNextDue = `-- name: SetRecurringRuleNextDue :one
+UPDATE recurring_rules SET next_due_date = $3, updated_at = now()
+WHERE id = $1 AND user_id = $2
+RETURNING id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at, anchor_date
+`
+
+type SetRecurringRuleNextDueParams struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	NextDueDate time.Time
+}
+
+func (q *Queries) SetRecurringRuleNextDue(ctx context.Context, arg SetRecurringRuleNextDueParams) (RecurringRule, error) {
+	row := q.db.QueryRow(ctx, setRecurringRuleNextDue, arg.ID, arg.UserID, arg.NextDueDate)
+	var i RecurringRule
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.AccountID,
+		&i.CategoryID,
+		&i.Amount,
+		&i.Frequency,
+		&i.CustomIntervalDays,
+		&i.NextDueDate,
+		&i.ReminderLeadDays,
+		&i.ArchivedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AnchorDate,
+	)
+	return i, err
+}
+
+const setTransactionRecurringRule = `-- name: SetTransactionRecurringRule :one
+UPDATE transactions SET recurring_rule_id = $3, updated_at = now()
+WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+RETURNING id, user_id, account_id, category_id, type, status, amount, date, payee, notes, reviewed, transfer_pair_id, recurring_rule_id, import_batch_id, deleted_at, created_at, updated_at
+`
+
+type SetTransactionRecurringRuleParams struct {
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	RecurringRuleID *uuid.UUID
+}
+
+func (q *Queries) SetTransactionRecurringRule(ctx context.Context, arg SetTransactionRecurringRuleParams) (Transaction, error) {
+	row := q.db.QueryRow(ctx, setTransactionRecurringRule, arg.ID, arg.UserID, arg.RecurringRuleID)
+	var i Transaction
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountID,
+		&i.CategoryID,
+		&i.Type,
+		&i.Status,
+		&i.Amount,
+		&i.Date,
+		&i.Payee,
+		&i.Notes,
+		&i.Reviewed,
+		&i.TransferPairID,
+		&i.RecurringRuleID,
+		&i.ImportBatchID,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateRecurringRule = `-- name: UpdateRecurringRule :one
 UPDATE recurring_rules
-SET name = $3, account_id = $4, category_id = $5, amount = $6, frequency = $7, custom_interval_days = $8, next_due_date = $9, reminder_lead_days = $10, updated_at = now()
+SET name = $3, account_id = $4, category_id = $5, amount = $6, frequency = $7, custom_interval_days = $8, next_due_date = $9, anchor_date = $10, reminder_lead_days = $11, updated_at = now()
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at
+RETURNING id, user_id, name, account_id, category_id, amount, frequency, custom_interval_days, next_due_date, reminder_lead_days, archived_at, created_at, updated_at, anchor_date
 `
 
 type UpdateRecurringRuleParams struct {
@@ -206,6 +283,7 @@ type UpdateRecurringRuleParams struct {
 	Frequency          string
 	CustomIntervalDays *int32
 	NextDueDate        time.Time
+	AnchorDate         time.Time
 	ReminderLeadDays   int32
 }
 
@@ -220,6 +298,7 @@ func (q *Queries) UpdateRecurringRule(ctx context.Context, arg UpdateRecurringRu
 		arg.Frequency,
 		arg.CustomIntervalDays,
 		arg.NextDueDate,
+		arg.AnchorDate,
 		arg.ReminderLeadDays,
 	)
 	var i RecurringRule
@@ -237,6 +316,7 @@ func (q *Queries) UpdateRecurringRule(ctx context.Context, arg UpdateRecurringRu
 		&i.ArchivedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AnchorDate,
 	)
 	return i, err
 }

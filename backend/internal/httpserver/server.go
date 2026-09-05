@@ -19,6 +19,7 @@ import (
 	"budgetflow/internal/config"
 	"budgetflow/internal/db"
 	appmw "budgetflow/internal/httpserver/middleware"
+	"budgetflow/internal/recurring"
 	"budgetflow/internal/transactions"
 )
 
@@ -59,7 +60,7 @@ func New(cfg config.Config, log *slog.Logger, pool *pgxpool.Pool, opts ...Option
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
-	r.Use(chimw.RealIP)
+	r.Use(chimw.RealIP) //nolint:staticcheck // acceptable until deployment: rate limiting needs the client IP behind the dev proxy; replace with a trusted-proxy-aware resolver before production
 	r.Use(appmw.RequestLogger(s.log))
 	r.Use(chimw.Recoverer)
 
@@ -99,6 +100,7 @@ func (s *Server) mountAuth(r chi.Router) {
 		categories.NewHandler(categories.NewService(s.pool), s.log).Mount(r)
 		budgets.NewHandler(budgets.NewService(s.pool), s.log).Mount(r)
 		transactions.NewHandler(transactions.NewService(s.pool), s.log).Mount(r)
+		recurring.NewHandler(recurring.NewService(s.pool), s.log).Mount(r)
 	})
 }
 

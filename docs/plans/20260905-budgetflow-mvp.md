@@ -118,12 +118,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 9: Recurring bills and subscriptions API
 **Files:**
   - Create: `backend/internal/recurring/`, queries in `backend/internal/db/queries/recurring.sql`
-  - [ ] CRUD for recurring rules: frequency (weekly, monthly, annual, custom interval), expected amount, due date, account, category, reminder lead time
-  - [ ] next-due-date computation (handles month-end clamping, e.g. due on the 31st)
-  - [ ] mark-as-paid: creates the real transaction and advances next due date; manual match to an existing transaction
-  - [ ] upcoming-bills endpoint (next N days) feeding dashboard and reserved-upcoming-payments in category math
-  - [ ] write tests: schedule advancement across frequencies and month-end edge cases, mark-paid transaction creation, reserved amount appears in category remaining
-  - [ ] run project test suite - must pass before task 10
+  - [x] CRUD for recurring rules: frequency (weekly, monthly, annual, custom interval), expected amount, due date, account, category, reminder lead time
+  - [x] next-due-date computation (handles month-end clamping, e.g. due on the 31st)
+  - [x] mark-as-paid: creates the real transaction and advances next due date; manual match to an existing transaction
+  - [x] upcoming-bills endpoint (next N days) feeding dashboard and reserved-upcoming-payments in category math
+  - [x] write tests: schedule advancement across frequencies and month-end edge cases, mark-paid transaction creation, reserved amount appears in category remaining
+  - [x] run project test suite - must pass before task 10
 
 ### Task 10: Goals API
 **Files:**

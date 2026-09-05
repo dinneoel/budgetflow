@@ -208,6 +208,7 @@ func detailJSON(d PeriodDetail) map[string]any {
 			"amount":     c.Amount,
 			"rollover":   c.Rollover,
 			"spending":   c.Spending,
+			"reserved":   c.Reserved,
 			"remaining":  c.Remaining,
 			"status":     c.Status,
 		})

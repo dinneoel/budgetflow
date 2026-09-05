@@ -18,6 +18,7 @@ import (
 	"budgetflow/internal/audit"
 	"budgetflow/internal/budgetmath"
 	"budgetflow/internal/db"
+	"budgetflow/internal/recurring"
 )
 
 // EventPeriodCreated is the audit event recorded on period creation. Income
@@ -72,6 +73,7 @@ type CategoryDetail struct {
 	Amount     int64
 	Rollover   int64
 	Spending   int64
+	Reserved   int64
 	Remaining  int64
 	Status     budgetmath.Status
 }
@@ -371,6 +373,13 @@ func (s *Service) detail(ctx context.Context, target db.BudgetPeriod) (PeriodDet
 	if err != nil {
 		return PeriodDetail{}, err
 	}
+	// Recurring bills due in the target month reserve funds against their
+	// category's remaining. Reservations are informational — they never enter
+	// the rollover/released math, which tracks actual money movements only.
+	reserved, err := recurring.ReservedByCategory(ctx, s.q, userID, int(target.Year), int(target.Month))
+	if err != nil {
+		return PeriodDetail{}, err
+	}
 
 	byPeriod := make(map[uuid.UUID][]db.ListAllocationsWithRuleByUserRow)
 	for _, a := range allocs {
@@ -394,12 +403,14 @@ func (s *Service) detail(ctx context.Context, target db.BudgetPeriod) (PeriodDet
 			remaining := cat.Remaining()
 			released += max(remaining, 0) - budgetmath.NextRollover(budgetmath.RolloverRule(a.RolloverRule), remaining, a.Amount)
 			if p.ID == target.ID {
+				cat.Reserved = reserved[a.CategoryID]
 				out.Categories = append(out.Categories, CategoryDetail{
 					CategoryID: a.CategoryID,
 					Amount:     a.Amount,
 					Rollover:   a.Rollover,
 					Spending:   cat.Spending,
-					Remaining:  remaining,
+					Reserved:   cat.Reserved,
+					Remaining:  cat.Remaining(),
 					Status:     cat.Classify(budgetmath.DefaultWarningThresholdPct),
 				})
 			}

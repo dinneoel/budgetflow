@@ -39,7 +39,11 @@ func TestMigrationsRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create migrator: %v", err)
 	}
-	defer m.Close()
+	defer func() {
+		if serr, derr := m.Close(); serr != nil || derr != nil {
+			t.Errorf("close migrator: %v / %v", serr, derr)
+		}
+	}()
 
 	if err := m.Up(); err != nil {
 		t.Fatalf("migrate up: %v", err)
