@@ -128,11 +128,11 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 10: Goals API
 **Files:**
   - Create: `backend/internal/goals/`, queries in `backend/internal/db/queries/goals.sql`
-  - [ ] CRUD for savings/payoff/purchase goals: target amount, target date, linked category, optional linked account
-  - [ ] contributions: manual entry or linked to a transaction; current balance derived from contributions
-  - [ ] required-monthly-contribution and behind-schedule status via budgetmath
-  - [ ] write tests: contribution accounting, projection math, behind-schedule detection at boundaries (past date, met target)
-  - [ ] run project test suite - must pass before task 11
+  - [x] CRUD for savings/payoff/purchase goals: target amount, target date, linked category, optional linked account
+  - [x] contributions: manual entry or linked to a transaction; current balance derived from contributions
+  - [x] required-monthly-contribution and behind-schedule status via budgetmath
+  - [x] write tests: contribution accounting, projection math, behind-schedule detection at boundaries (past date, met target)
+  - [x] run project test suite - must pass before task 11
 
 ### Task 11: In-app notifications engine and API
 **Files:**

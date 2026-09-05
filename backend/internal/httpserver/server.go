@@ -18,6 +18,7 @@ import (
 	"budgetflow/internal/categories"
 	"budgetflow/internal/config"
 	"budgetflow/internal/db"
+	"budgetflow/internal/goals"
 	appmw "budgetflow/internal/httpserver/middleware"
 	"budgetflow/internal/recurring"
 	"budgetflow/internal/transactions"
@@ -101,6 +102,7 @@ func (s *Server) mountAuth(r chi.Router) {
 		budgets.NewHandler(budgets.NewService(s.pool), s.log).Mount(r)
 		transactions.NewHandler(transactions.NewService(s.pool), s.log).Mount(r)
 		recurring.NewHandler(recurring.NewService(s.pool), s.log).Mount(r)
+		goals.NewHandler(goals.NewService(db.New(s.pool)), s.log).Mount(r)
 	})
 }
 

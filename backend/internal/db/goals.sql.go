@@ -93,6 +93,25 @@ func (q *Queries) CreateGoalContribution(ctx context.Context, arg CreateGoalCont
 	return i, err
 }
 
+const deleteGoalContribution = `-- name: DeleteGoalContribution :execrows
+DELETE FROM goal_contributions
+WHERE id = $1 AND user_id = $2 AND goal_id = $3
+`
+
+type DeleteGoalContributionParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+	GoalID uuid.UUID
+}
+
+func (q *Queries) DeleteGoalContribution(ctx context.Context, arg DeleteGoalContributionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteGoalContribution, arg.ID, arg.UserID, arg.GoalID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getGoal = `-- name: GetGoal :one
 SELECT id, user_id, name, type, target_amount, target_date, category_id, account_id, archived_at, created_at, updated_at FROM goals WHERE id = $1 AND user_id = $2
 `
@@ -167,6 +186,38 @@ func (q *Queries) ListContributionsByGoal(ctx context.Context, arg ListContribut
 			&i.Notes,
 			&i.CreatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGoalBalances = `-- name: ListGoalBalances :many
+SELECT goal_id, sum(amount)::bigint AS balance
+FROM goal_contributions
+WHERE user_id = $1
+GROUP BY goal_id
+`
+
+type ListGoalBalancesRow struct {
+	GoalID  uuid.UUID
+	Balance int64
+}
+
+func (q *Queries) ListGoalBalances(ctx context.Context, userID uuid.UUID) ([]ListGoalBalancesRow, error) {
+	rows, err := q.db.Query(ctx, listGoalBalances, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGoalBalancesRow
+	for rows.Next() {
+		var i ListGoalBalancesRow
+		if err := rows.Scan(&i.GoalID, &i.Balance); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

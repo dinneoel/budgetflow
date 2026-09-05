@@ -30,3 +30,13 @@ SELECT * FROM goal_contributions WHERE goal_id = $1 AND user_id = $2 ORDER BY co
 SELECT COALESCE(sum(amount), 0)::bigint AS balance
 FROM goal_contributions
 WHERE goal_id = $1 AND user_id = $2;
+
+-- name: ListGoalBalances :many
+SELECT goal_id, sum(amount)::bigint AS balance
+FROM goal_contributions
+WHERE user_id = $1
+GROUP BY goal_id;
+
+-- name: DeleteGoalContribution :execrows
+DELETE FROM goal_contributions
+WHERE id = $1 AND user_id = $2 AND goal_id = $3;
