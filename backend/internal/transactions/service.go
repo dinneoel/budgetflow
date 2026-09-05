@@ -792,25 +792,27 @@ func (s *Service) findDuplicates(ctx context.Context, userID, accountID uuid.UUI
 	}
 	ids := []uuid.UUID{}
 	for _, r := range rows {
-		if similarPayee(payee, r.Payee) {
+		if SimilarPayee(payee, r.Payee) {
 			ids = append(ids, r.ID)
 		}
 	}
 	return ids, nil
 }
 
-// similarPayee normalizes both payees (lowercase, alphanumerics only) and
+// SimilarPayee normalizes both payees (lowercase, alphanumerics only) and
 // treats them as similar when either contains the other. This catches
-// variants like "STARBUCKS #1234" vs "Starbucks".
-func similarPayee(a, b string) bool {
-	na, nb := normalizePayee(a), normalizePayee(b)
+// variants like "STARBUCKS #1234" vs "Starbucks". Exported so the CSV
+// importer applies the same duplicate heuristic.
+func SimilarPayee(a, b string) bool {
+	na, nb := NormalizePayee(a), NormalizePayee(b)
 	if na == "" || nb == "" {
 		return na == nb
 	}
 	return strings.Contains(na, nb) || strings.Contains(nb, na)
 }
 
-func normalizePayee(s string) string {
+// NormalizePayee lowercases a payee and strips everything but alphanumerics.
+func NormalizePayee(s string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(s) {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {

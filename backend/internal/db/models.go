@@ -121,12 +121,22 @@ type GoalContribution struct {
 type ImportBatch struct {
 	ID          uuid.UUID
 	UserID      uuid.UUID
-	AccountID   uuid.UUID
+	AccountID   *uuid.UUID
 	FileName    string
 	Status      string
 	RowCount    int32
 	CreatedAt   time.Time
 	CommittedAt *time.Time
+}
+
+type ImportUploadDatum struct {
+	BatchID   uuid.UUID
+	UserID    uuid.UUID
+	Header    []byte
+	HasHeader bool
+	Rows      []byte
+	Mapping   []byte
+	CreatedAt time.Time
 }
 
 type Notification struct {

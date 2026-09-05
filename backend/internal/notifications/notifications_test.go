@@ -444,7 +444,7 @@ func TestScheduledEvaluatorConditions(t *testing.T) {
 	// uploaded-but-uncommitted import batch needs review
 	account := e.addAccount(c.userID, "Checking")
 	if _, err := e.q.CreateImportBatch(ctx, db.CreateImportBatchParams{
-		UserID: c.userID, AccountID: account, FileName: "bank.csv", Status: "pending",
+		UserID: c.userID, AccountID: &account, FileName: "bank.csv", Status: "pending",
 	}); err != nil {
 		t.Fatalf("create fixture import batch: %v", err)
 	}

@@ -148,13 +148,13 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 12: CSV import (mapping, preview, commit, batch undo)
 **Files:**
   - Create: `backend/internal/importer/`, queries in `backend/internal/db/queries/imports.sql`
-  - [ ] upload endpoint: parse CSV (delimiter/encoding tolerant), return detected columns and sample rows
-  - [ ] column-mapping submission: map date/amount/payee/notes/category columns, date and amount format options, target account
-  - [ ] preview endpoint: validated rows with per-row errors, duplicate detection against existing transactions and within the file
-  - [ ] commit: create import batch + transactions atomically; skip or include flagged duplicates per user choice
-  - [ ] delete an entire import batch (removes its transactions, records audit event)
-  - [ ] write tests: mapping variants, malformed rows reported not crashing, duplicate flags, batch delete restores prior balances
-  - [ ] run project test suite - must pass before task 13
+  - [x] upload endpoint: parse CSV (delimiter/encoding tolerant), return detected columns and sample rows
+  - [x] column-mapping submission: map date/amount/payee/notes/category columns, date and amount format options, target account
+  - [x] preview endpoint: validated rows with per-row errors, duplicate detection against existing transactions and within the file
+  - [x] commit: create import batch + transactions atomically; skip or include flagged duplicates per user choice
+  - [x] delete an entire import batch (removes its transactions, records audit event)
+  - [x] write tests: mapping variants, malformed rows reported not crashing, duplicate flags, batch delete restores prior balances
+  - [x] run project test suite - must pass before task 13
 
 ### Task 13: CSV export, full data export, and account deletion
 **Files:**

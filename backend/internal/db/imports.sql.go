@@ -12,6 +12,41 @@ import (
 	"github.com/google/uuid"
 )
 
+const commitImportBatch = `-- name: CommitImportBatch :one
+UPDATE import_batches
+SET account_id = $3, status = 'committed', committed_at = now(), row_count = $4
+WHERE id = $1 AND user_id = $2 AND status = 'pending'
+RETURNING id, user_id, account_id, file_name, status, row_count, created_at, committed_at
+`
+
+type CommitImportBatchParams struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	AccountID *uuid.UUID
+	RowCount  int32
+}
+
+func (q *Queries) CommitImportBatch(ctx context.Context, arg CommitImportBatchParams) (ImportBatch, error) {
+	row := q.db.QueryRow(ctx, commitImportBatch,
+		arg.ID,
+		arg.UserID,
+		arg.AccountID,
+		arg.RowCount,
+	)
+	var i ImportBatch
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountID,
+		&i.FileName,
+		&i.Status,
+		&i.RowCount,
+		&i.CreatedAt,
+		&i.CommittedAt,
+	)
+	return i, err
+}
+
 const createImportBatch = `-- name: CreateImportBatch :one
 INSERT INTO import_batches (user_id, account_id, file_name, status, row_count)
 VALUES ($1, $2, $3, $4, $5)
@@ -20,7 +55,7 @@ RETURNING id, user_id, account_id, file_name, status, row_count, created_at, com
 
 type CreateImportBatchParams struct {
 	UserID    uuid.UUID
-	AccountID uuid.UUID
+	AccountID *uuid.UUID
 	FileName  string
 	Status    string
 	RowCount  int32
@@ -46,6 +81,44 @@ func (q *Queries) CreateImportBatch(ctx context.Context, arg CreateImportBatchPa
 		&i.CommittedAt,
 	)
 	return i, err
+}
+
+const createImportUploadData = `-- name: CreateImportUploadData :exec
+INSERT INTO import_upload_data (batch_id, user_id, header, has_header, rows)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateImportUploadDataParams struct {
+	BatchID   uuid.UUID
+	UserID    uuid.UUID
+	Header    []byte
+	HasHeader bool
+	Rows      []byte
+}
+
+func (q *Queries) CreateImportUploadData(ctx context.Context, arg CreateImportUploadDataParams) error {
+	_, err := q.db.Exec(ctx, createImportUploadData,
+		arg.BatchID,
+		arg.UserID,
+		arg.Header,
+		arg.HasHeader,
+		arg.Rows,
+	)
+	return err
+}
+
+const deleteImportUploadData = `-- name: DeleteImportUploadData :exec
+DELETE FROM import_upload_data WHERE batch_id = $1 AND user_id = $2
+`
+
+type DeleteImportUploadDataParams struct {
+	BatchID uuid.UUID
+	UserID  uuid.UUID
+}
+
+func (q *Queries) DeleteImportUploadData(ctx context.Context, arg DeleteImportUploadDataParams) error {
+	_, err := q.db.Exec(ctx, deleteImportUploadData, arg.BatchID, arg.UserID)
+	return err
 }
 
 const deleteTransactionsByImportBatch = `-- name: DeleteTransactionsByImportBatch :exec
@@ -87,6 +160,82 @@ func (q *Queries) GetImportBatch(ctx context.Context, arg GetImportBatchParams) 
 	return i, err
 }
 
+const getImportUploadData = `-- name: GetImportUploadData :one
+SELECT batch_id, user_id, header, has_header, rows, mapping, created_at FROM import_upload_data WHERE batch_id = $1 AND user_id = $2
+`
+
+type GetImportUploadDataParams struct {
+	BatchID uuid.UUID
+	UserID  uuid.UUID
+}
+
+func (q *Queries) GetImportUploadData(ctx context.Context, arg GetImportUploadDataParams) (ImportUploadDatum, error) {
+	row := q.db.QueryRow(ctx, getImportUploadData, arg.BatchID, arg.UserID)
+	var i ImportUploadDatum
+	err := row.Scan(
+		&i.BatchID,
+		&i.UserID,
+		&i.Header,
+		&i.HasHeader,
+		&i.Rows,
+		&i.Mapping,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listAccountTransactionsForDedup = `-- name: ListAccountTransactionsForDedup :many
+SELECT id, amount, date, payee FROM transactions
+WHERE user_id = $1 AND account_id = $2 AND deleted_at IS NULL
+  AND date BETWEEN $3 AND $4
+`
+
+type ListAccountTransactionsForDedupParams struct {
+	UserID    uuid.UUID
+	AccountID uuid.UUID
+	DateFrom  time.Time
+	DateTo    time.Time
+}
+
+type ListAccountTransactionsForDedupRow struct {
+	ID     uuid.UUID
+	Amount int64
+	Date   time.Time
+	Payee  string
+}
+
+// Live transactions on one account within a date window, for duplicate
+// detection during import preview (matched in memory by amount/date/payee).
+func (q *Queries) ListAccountTransactionsForDedup(ctx context.Context, arg ListAccountTransactionsForDedupParams) ([]ListAccountTransactionsForDedupRow, error) {
+	rows, err := q.db.Query(ctx, listAccountTransactionsForDedup,
+		arg.UserID,
+		arg.AccountID,
+		arg.DateFrom,
+		arg.DateTo,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAccountTransactionsForDedupRow
+	for rows.Next() {
+		var i ListAccountTransactionsForDedupRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Amount,
+			&i.Date,
+			&i.Payee,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listImportBatchesByUser = `-- name: ListImportBatchesByUser :many
 SELECT id, user_id, account_id, file_name, status, row_count, created_at, committed_at FROM import_batches WHERE user_id = $1 ORDER BY created_at DESC
 `
@@ -118,6 +267,62 @@ func (q *Queries) ListImportBatchesByUser(ctx context.Context, userID uuid.UUID)
 		return nil, err
 	}
 	return items, nil
+}
+
+const listTransactionIDsByImportBatch = `-- name: ListTransactionIDsByImportBatch :many
+SELECT id FROM transactions WHERE import_batch_id = $1 AND user_id = $2
+`
+
+type ListTransactionIDsByImportBatchParams struct {
+	ImportBatchID *uuid.UUID
+	UserID        uuid.UUID
+}
+
+func (q *Queries) ListTransactionIDsByImportBatch(ctx context.Context, arg ListTransactionIDsByImportBatchParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listTransactionIDsByImportBatch, arg.ImportBatchID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markImportBatchDeleted = `-- name: MarkImportBatchDeleted :one
+UPDATE import_batches SET status = 'deleted'
+WHERE id = $1 AND user_id = $2 AND status <> 'deleted'
+RETURNING id, user_id, account_id, file_name, status, row_count, created_at, committed_at
+`
+
+type MarkImportBatchDeletedParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) MarkImportBatchDeleted(ctx context.Context, arg MarkImportBatchDeletedParams) (ImportBatch, error) {
+	row := q.db.QueryRow(ctx, markImportBatchDeleted, arg.ID, arg.UserID)
+	var i ImportBatch
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.AccountID,
+		&i.FileName,
+		&i.Status,
+		&i.RowCount,
+		&i.CreatedAt,
+		&i.CommittedAt,
+	)
+	return i, err
 }
 
 const setImportBatchStatus = `-- name: SetImportBatchStatus :one
@@ -154,4 +359,19 @@ func (q *Queries) SetImportBatchStatus(ctx context.Context, arg SetImportBatchSt
 		&i.CommittedAt,
 	)
 	return i, err
+}
+
+const setImportUploadMapping = `-- name: SetImportUploadMapping :exec
+UPDATE import_upload_data SET mapping = $3 WHERE batch_id = $1 AND user_id = $2
+`
+
+type SetImportUploadMappingParams struct {
+	BatchID uuid.UUID
+	UserID  uuid.UUID
+	Mapping []byte
+}
+
+func (q *Queries) SetImportUploadMapping(ctx context.Context, arg SetImportUploadMappingParams) error {
+	_, err := q.db.Exec(ctx, setImportUploadMapping, arg.BatchID, arg.UserID, arg.Mapping)
+	return err
 }

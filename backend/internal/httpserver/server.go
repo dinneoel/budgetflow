@@ -20,6 +20,7 @@ import (
 	"budgetflow/internal/db"
 	"budgetflow/internal/goals"
 	appmw "budgetflow/internal/httpserver/middleware"
+	"budgetflow/internal/importer"
 	"budgetflow/internal/notifications"
 	"budgetflow/internal/recurring"
 	"budgetflow/internal/transactions"
@@ -113,6 +114,7 @@ func (s *Server) mountAuth(r chi.Router) {
 			budgets.NewHandler(budgetsSvc, s.log).Mount(r)
 			transactions.NewHandler(transactions.NewService(s.pool), s.log).Mount(r)
 			recurring.NewHandler(recurring.NewService(s.pool), s.log).Mount(r)
+			importer.NewHandler(importer.NewService(s.pool), s.log).Mount(r)
 		})
 	})
 }
