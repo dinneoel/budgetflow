@@ -20,6 +20,14 @@ UPDATE accounts SET archived_at = $3, updated_at = now()
 WHERE id = $1 AND user_id = $2
 RETURNING *;
 
+-- name: ListAccountBalancesByUser :many
+SELECT sqlc.embed(a), (a.opening_balance + COALESCE(sum(t.amount), 0))::bigint AS balance
+FROM accounts a
+LEFT JOIN transactions t ON t.account_id = a.id AND t.deleted_at IS NULL
+WHERE a.user_id = $1
+GROUP BY a.id
+ORDER BY a.created_at, a.id;
+
 -- name: GetAccountBalance :one
 SELECT (a.opening_balance + COALESCE(sum(t.amount), 0))::bigint AS balance
 FROM accounts a

@@ -75,12 +75,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 5: Accounts API
 **Files:**
   - Create: `backend/internal/accounts/` (handlers, service), queries in `backend/internal/db/queries/accounts.sql`
-  - [ ] CRUD for manual accounts: name, institution, type (cash/checking/savings/credit_card/ewallet/custom), currency, opening balance, net-worth inclusion flag
-  - [ ] archive/unarchive without touching historical transactions
-  - [ ] current balance computed from opening balance + transactions (single source of truth, no stored drift)
-  - [ ] reconciliation endpoint: compare statement balance, create adjustment transaction for the difference
-  - [ ] write tests: balance computation across transaction types, archive behavior, reconciliation adjustment, cross-user access denied
-  - [ ] run project test suite - must pass before task 6
+  - [x] CRUD for manual accounts: name, institution, type (cash/checking/savings/credit_card/ewallet/custom), currency, opening balance, net-worth inclusion flag
+  - [x] archive/unarchive without touching historical transactions
+  - [x] current balance computed from opening balance + transactions (single source of truth, no stored drift)
+  - [x] reconciliation endpoint: compare statement balance, create adjustment transaction for the difference
+  - [x] write tests: balance computation across transaction types, archive behavior, reconciliation adjustment, cross-user access denied
+  - [x] run project test suite - must pass before task 6
 
 ### Task 6: Categories and category groups API
 **Files:**

@@ -103,6 +103,53 @@ func (q *Queries) GetAccountBalance(ctx context.Context, arg GetAccountBalancePa
 	return balance, err
 }
 
+const listAccountBalancesByUser = `-- name: ListAccountBalancesByUser :many
+SELECT a.id, a.user_id, a.name, a.institution, a.type, a.currency, a.opening_balance, a.include_in_net_worth, a.archived_at, a.created_at, a.updated_at, (a.opening_balance + COALESCE(sum(t.amount), 0))::bigint AS balance
+FROM accounts a
+LEFT JOIN transactions t ON t.account_id = a.id AND t.deleted_at IS NULL
+WHERE a.user_id = $1
+GROUP BY a.id
+ORDER BY a.created_at, a.id
+`
+
+type ListAccountBalancesByUserRow struct {
+	Account Account
+	Balance int64
+}
+
+func (q *Queries) ListAccountBalancesByUser(ctx context.Context, userID uuid.UUID) ([]ListAccountBalancesByUserRow, error) {
+	rows, err := q.db.Query(ctx, listAccountBalancesByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAccountBalancesByUserRow
+	for rows.Next() {
+		var i ListAccountBalancesByUserRow
+		if err := rows.Scan(
+			&i.Account.ID,
+			&i.Account.UserID,
+			&i.Account.Name,
+			&i.Account.Institution,
+			&i.Account.Type,
+			&i.Account.Currency,
+			&i.Account.OpeningBalance,
+			&i.Account.IncludeInNetWorth,
+			&i.Account.ArchivedAt,
+			&i.Account.CreatedAt,
+			&i.Account.UpdatedAt,
+			&i.Balance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAccountsByUser = `-- name: ListAccountsByUser :many
 SELECT id, user_id, name, institution, type, currency, opening_balance, include_in_net_worth, archived_at, created_at, updated_at FROM accounts WHERE user_id = $1 ORDER BY created_at
 `
