@@ -159,12 +159,12 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 13: CSV export, full data export, and account deletion
 **Files:**
   - Create: `backend/internal/exporter/`, deletion logic in `backend/internal/auth/` or `backend/internal/users/`
-  - [ ] CSV export endpoints: transactions (respecting current filters), monthly budget, categories, goals summary
-  - [ ] full data export: single ZIP of CSVs for every entity owned by the user
-  - [ ] account deletion: re-authentication required, deletes all user data in one transaction, records final audit event
-  - [ ] export requests logged as audit events
-  - [ ] write tests: export round-trips (export → parse → matches DB), deletion removes all rows across tables, deletion requires re-auth
-  - [ ] run project test suite - must pass before task 14
+  - [x] CSV export endpoints: transactions (respecting current filters), monthly budget, categories, goals summary
+  - [x] full data export: single ZIP of CSVs for every entity owned by the user
+  - [x] account deletion: re-authentication required, deletes all user data in one transaction, records final audit event
+  - [x] export requests logged as audit events
+  - [x] write tests: export round-trips (export → parse → matches DB), deletion removes all rows across tables, deletion requires re-auth
+  - [x] run project test suite - must pass before task 14
 
 ### Task 14: Dashboard and reports API
 **Files:**

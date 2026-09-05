@@ -18,12 +18,14 @@ import (
 	"budgetflow/internal/categories"
 	"budgetflow/internal/config"
 	"budgetflow/internal/db"
+	"budgetflow/internal/exporter"
 	"budgetflow/internal/goals"
 	appmw "budgetflow/internal/httpserver/middleware"
 	"budgetflow/internal/importer"
 	"budgetflow/internal/notifications"
 	"budgetflow/internal/recurring"
 	"budgetflow/internal/transactions"
+	"budgetflow/internal/users"
 )
 
 // Server wraps the HTTP server and its dependencies.
@@ -106,6 +108,8 @@ func (s *Server) mountAuth(r chi.Router) {
 		categories.NewHandler(categories.NewService(s.pool), s.log).Mount(r)
 		goals.NewHandler(goals.NewService(db.New(s.pool)), s.log).Mount(r)
 		notifications.NewHandler(notifications.NewService(db.New(s.pool)), engine, s.log).Mount(r)
+		exporter.NewHandler(exporter.NewService(s.pool), s.log).Mount(r)
+		users.NewHandler(users.NewService(s.pool), s.log, s.cfg.Env == "prod").Mount(r)
 		// Budget, transaction, and recurring writes can change category
 		// spending or allocations, so their routes re-evaluate the
 		// event-driven category triggers after each successful mutation.

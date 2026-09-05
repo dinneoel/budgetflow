@@ -88,7 +88,7 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	user, _ := auth.UserFrom(r.Context())
-	f, err := parseFilter(r)
+	f, err := ParseFilter(r)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
@@ -183,9 +183,10 @@ func (h *Handler) Bulk(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// parseFilter reads list filters from query parameters. Unknown values fail
+// ParseFilter reads list filters from query parameters. Unknown values fail
 // fast with a validation error rather than silently returning everything.
-func parseFilter(r *http.Request) (Filter, error) {
+// Exported so the CSV exporter accepts the same filter parameters as List.
+func ParseFilter(r *http.Request) (Filter, error) {
 	q := r.URL.Query()
 	f := Filter{}
 
