@@ -51,6 +51,12 @@ function DesktopSidebar() {
       </nav>
       <div className="mt-6 space-y-1 border-t border-gray-200 pt-4">
         <QuickAddButton className="mb-3 h-10 w-full rounded-md" />
+        <NavLink to="/accounts" className={navLinkClass}>
+          Accounts
+        </NavLink>
+        <NavLink to="/categories" className={navLinkClass}>
+          Categories
+        </NavLink>
         <NavLink to="/settings" className={navLinkClass}>
           Settings
         </NavLink>

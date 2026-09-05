@@ -1,8 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { Field, FormError, SelectField } from '../../components/forms/Field'
 import { profileSchema, type ProfileValues } from '../auth/schemas'
 import { useCurrentUser, useUpdateProfile } from '../auth/useAuth'
+import { DataSection } from './DataSection'
+import { NotificationPreferencesSection } from './NotificationPreferencesSection'
+import { SecuritySection } from './SecuritySection'
 
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -79,6 +83,22 @@ export function SettingsPage() {
   return (
     <>
       <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+
+      <nav aria-label="Manage" className="mt-4 flex max-w-lg gap-2">
+        <Link
+          to="/accounts"
+          className="flex-1 rounded-lg bg-white px-4 py-3 text-sm font-medium text-gray-900 shadow hover:bg-gray-50"
+        >
+          Accounts
+        </Link>
+        <Link
+          to="/categories"
+          className="flex-1 rounded-lg bg-white px-4 py-3 text-sm font-medium text-gray-900 shadow hover:bg-gray-50"
+        >
+          Categories
+        </Link>
+      </nav>
+
       <h2 className="mt-6 text-lg font-semibold text-gray-900">Profile</h2>
       {user ? (
         <ProfileForm
@@ -91,6 +111,10 @@ export function SettingsPage() {
           }}
         />
       ) : null}
+
+      <NotificationPreferencesSection />
+      <SecuritySection />
+      <DataSection />
     </>
   )
 }

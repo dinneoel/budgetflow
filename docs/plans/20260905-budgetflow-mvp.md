@@ -188,11 +188,11 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
 ### Task 16: Frontend — accounts, categories, and settings screens
 **Files:**
   - Create: `frontend/src/features/accounts/`, `frontend/src/features/categories/`, `frontend/src/features/settings/`
-  - [ ] account list + detail: create/edit/archive, opening balance, reconciliation flow, net-worth inclusion toggle
-  - [ ] category manager: groups and categories with create/rename/reorder/archive/merge, icon and color pickers, budget type and rollover rule selectors, default-set seeding
-  - [ ] settings screens: profile, notification preferences with threshold configuration, security (session list, sign-out-all), data (export all, delete account with confirmation)
-  - [ ] write tests: account creation flow, category reorder interaction, delete-account confirmation gating
-  - [ ] run project test suite - must pass before task 17
+  - [x] account list + detail: create/edit/archive, opening balance, reconciliation flow, net-worth inclusion toggle
+  - [x] category manager: groups and categories with create/rename/reorder/archive/merge, icon and color pickers, budget type and rollover rule selectors, default-set seeding
+  - [x] settings screens: profile, notification preferences with threshold configuration, security (session list, sign-out-all), data (export all, delete account with confirmation)
+  - [x] write tests: account creation flow, category reorder interaction, delete-account confirmation gating
+  - [x] run project test suite - must pass before task 17
 
 ### Task 17: Frontend — budget workspace
 **Files:**
