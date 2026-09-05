@@ -250,8 +250,8 @@ Bootstrap the complete BudgetFlow MVP from an empty repository: a Go backend (ch
   - [x] verify test coverage meets 80%+ on backend internal packages and frontend features (backend internal: 81.0% statements with cross-package merge; frontend features: 82.2% statements)
 
 ### Task 23: Update documentation
-  - [ ] write README.md: project overview, architecture, local setup (docker-compose, migrations, dev servers), test/lint commands
-  - [ ] create CLAUDE.md: repo conventions (money as minor units, sqlc workflow, migration numbering, feature-folder layout, test database usage)
+  - [x] write README.md: project overview, architecture, local setup (docker-compose, migrations, dev servers), test/lint commands
+  - [x] create CLAUDE.md: repo conventions (money as minor units, sqlc workflow, migration numbering, feature-folder layout, test database usage)
 
 ## Post-Completion (manual, not automated)
   - Configure production SMTP for password-reset email delivery
