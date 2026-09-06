@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Category, CategoryGroup, CategoryInput } from '../../api/categories'
 import { EmptyState } from '../../components/EmptyState'
 import { CategoryForm } from './CategoryForm'
+import { categoryIcon } from './icons'
 import { budgetTypeLabels, rolloverRuleLabels } from './labels'
 import {
   useArchiveCategory,
@@ -112,10 +113,10 @@ function CategoryRow({
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-base"
+          className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md text-base leading-none"
           style={{ backgroundColor: category.color || '#e5e7eb' }}
         >
-          {category.icon}
+          {categoryIcon(category.icon)}
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-gray-900">

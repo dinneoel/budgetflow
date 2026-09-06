@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react'
+import { categoryIcon } from '../categories/icons'
 import type { AllocationDetail, BudgetPeriodDetail } from '../../api/budgets'
 import type { Category, CategoryGroup } from '../../api/categories'
 import { EmptyState } from '../../components/EmptyState'
@@ -298,7 +299,7 @@ function CategoryTable({
             <tr key={row.category.id} className="border-t border-gray-100">
               <td className="px-4 py-2">
                 <span aria-hidden="true" className="mr-2">
-                  {row.category.icon}
+                  {categoryIcon(row.category.icon)}
                 </span>
                 {row.category.name}
               </td>
@@ -349,7 +350,7 @@ function CategoryCards({
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-medium text-gray-900">
                     <span aria-hidden="true" className="mr-2">
-                      {row.category.icon}
+                      {categoryIcon(row.category.icon)}
                     </span>
                     {row.category.name}
                   </p>

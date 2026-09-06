@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useIsDesktop } from '../../hooks/useMediaQuery'
 import { useCurrentUser, useSignOut } from '../../features/auth/useAuth'
 import { NotificationCenter } from '../../features/notifications/NotificationCenter'
@@ -14,7 +15,7 @@ const navItems = [
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return [
-    'rounded-md px-3 py-2 text-sm font-medium',
+    'block rounded-md px-3 py-2 text-sm font-medium',
     isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700 hover:bg-gray-100',
   ].join(' ')
 }
@@ -42,12 +43,12 @@ function DesktopSidebar() {
   const navigate = useNavigate()
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white px-4 py-6">
+    <aside className="sticky top-0 flex h-dvh w-60 shrink-0 flex-col self-start border-r border-gray-200 bg-white px-4 py-6">
       <div className="flex items-center justify-between px-3">
         <p className="text-xl font-bold text-indigo-600">BudgetFlow</p>
         <NotificationCenter />
       </div>
-      <nav aria-label="Primary" className="mt-6 flex flex-1 flex-col gap-1">
+      <nav aria-label="Primary" className="mt-6 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.to === '/'} className={navLinkClass}>
             {item.label}
@@ -126,6 +127,11 @@ function MobileHeader() {
 // desktop, bottom navigation plus floating quick-add on mobile.
 export function AppShell() {
   const isDesktop = useIsDesktop()
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   return (
     <div className="flex min-h-screen bg-gray-50">

@@ -17,7 +17,7 @@ A personal budgeting app: zero-based monthly budgets, accounts, transactions, re
 
 - `backend/` — Go API server: [chi](https://github.com/go-chi/chi) router, PostgreSQL via pgx + [sqlc](https://sqlc.dev), golang-migrate migrations. Money is stored as int64 minor units (cents) — never floats. Budget/money math lives in pure packages (`internal/money`, `internal/budgetmath`) with table-driven tests.
 - `frontend/` — React + TypeScript (Vite): React Router, TanStack Query, Tailwind CSS, react-hook-form + zod. Tests with Vitest + React Testing Library, including axe-core accessibility checks.
-- `docker-compose.yml` — PostgreSQL 16 with `budgetflow_dev` and `budgetflow_test` databases.
+- `docker-compose.yml` — frontend, Go API, automatic migrations, and PostgreSQL 16 with `budgetflow_dev` and `budgetflow_test` databases.
 
 ```
 backend/
@@ -37,6 +37,24 @@ frontend/src/
   features/            one folder per screen area (budget, transactions, …)
   routes/              route definitions and guards
 ```
+
+## Run with Docker Compose
+
+Requires Docker with the Compose plugin; Go and Node are built inside containers.
+
+```sh
+docker compose up --build -d --wait
+```
+
+Open http://localhost:5173. Set `FRONTEND_PORT` to use another port, for example `FRONTEND_PORT=3000 docker compose up --build -d --wait`.
+The frontend proxies `/api` to the backend. Migrations run after PostgreSQL is healthy and before the API starts.
+
+```sh
+docker compose logs -f             # view logs
+docker compose down                # stop the application; preserve database data
+```
+
+Database data persists in the `db-data` volume. This setup uses development credentials and HTTP-compatible cookies (`APP_ENV=dev`) for local use. Re-run the startup command after code changes to rebuild the images and apply migrations.
 
 ## Local setup
 

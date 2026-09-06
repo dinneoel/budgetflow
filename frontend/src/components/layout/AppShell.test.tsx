@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Route, Routes } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { jsonResponse, mockFetch, mockViewport, renderWithProviders, testUser } from '../../test/utils'
 import { AppShell } from './AppShell'
 
@@ -12,12 +13,29 @@ function renderShell() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<div>page body</div>} />
+        <Route path="/categories" element={<div>categories body</div>} />
       </Route>
     </Routes>,
   )
 }
 
 describe('AppShell', () => {
+  beforeEach(() => {
+    vi.stubGlobal('scrollTo', vi.fn())
+  })
+
+  it('returns to the top when navigating to another page', async () => {
+    mockViewport(true)
+    renderShell()
+    const user = userEvent.setup()
+    vi.mocked(window.scrollTo).mockClear()
+
+    await user.click(screen.getByRole('link', { name: 'Categories' }))
+
+    expect(screen.getByText('categories body')).toBeInTheDocument()
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0)
+  })
+
   it('renders the sidebar navigation with all primary links on desktop', async () => {
     mockViewport(true)
     renderShell()

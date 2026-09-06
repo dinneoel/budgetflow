@@ -10,7 +10,7 @@ import {
 import { Field, FormError, SelectField } from '../../components/forms/Field'
 import { budgetTypeLabels, rolloverRuleLabels } from './labels'
 
-const icons = ['🏠', '🍎', '🚌', '💡', '🎁', '🎬', '🩺', '📚', '✈️', '💰', '🐾', '🧾']
+import { categoryIcon, categoryIcons as icons } from './icons'
 
 const colors = [
   { value: '#ef4444', name: 'Red' },
@@ -95,11 +95,11 @@ export function CategoryForm({
                   key={icon}
                   type="button"
                   aria-label={`Icon ${icon}`}
-                  aria-pressed={field.value === icon}
+                  aria-pressed={categoryIcon(field.value) === icon}
                   onClick={() => field.onChange(icon)}
                   className={[
                     'flex h-9 w-9 items-center justify-center rounded-md border text-lg',
-                    field.value === icon
+                    categoryIcon(field.value) === icon
                       ? 'border-indigo-600 bg-indigo-50'
                       : 'border-gray-200 hover:bg-gray-50',
                   ].join(' ')}
